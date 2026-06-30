@@ -132,7 +132,7 @@ h2 {
 }
 
 .documents-section {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
 }
 
 .conversations-section {
@@ -185,6 +185,21 @@ input[type="file"] {
   height: 1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.search-input::placeholder {
+  color: var(--muted);
 }
 
 .primary-button,
@@ -292,6 +307,15 @@ input[type="file"] {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fbfcfd;
+}
+
+.empty-list-item {
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fbfcfd;
+  text-align: center;
 }
 
 .conversation-item {

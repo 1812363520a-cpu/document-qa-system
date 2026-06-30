@@ -5,6 +5,7 @@ const state = {
 const apiStatus = document.querySelector("#apiStatus");
 const documentList = document.querySelector("#documentList");
 const documentMessage = document.querySelector("#documentMessage");
+const documentSearch = document.querySelector("#documentSearch");
 const conversationList = document.querySelector("#conversationList");
 const conversationMessage = document.querySelector("#conversationMessage");
 const uploadForm = document.querySelector("#uploadForm");
@@ -18,6 +19,8 @@ const questionInput = document.querySelector("#questionInput");
 const sendButton = document.querySelector("#sendButton");
 const chatMessage = document.querySelector("#chatMessage");
 const newConversation = document.querySelector("#newConversation");
+
+let currentDocuments = [];
 
 function setMessage(element, text, isError = false) {
   element.textContent = text;
@@ -64,7 +67,8 @@ async function checkApi() {
 async function loadDocuments() {
   try {
     const documents = await request("/api/documents");
-    renderDocuments(documents);
+    currentDocuments = documents;
+    renderDocuments(filteredDocuments());
     setMessage(documentMessage, documents.length ? `${documents.length} document(s)` : "No documents");
   } catch (error) {
     setMessage(documentMessage, error.message, true);
@@ -117,6 +121,13 @@ function renderConversationList(conversations) {
 
 function renderDocuments(documents) {
   documentList.replaceChildren();
+  if (!documents.length && currentDocuments.length && documentSearch.value.trim()) {
+    const empty = document.createElement("li");
+    empty.className = "empty-list-item";
+    empty.textContent = "No matching files";
+    documentList.append(empty);
+    return;
+  }
   for (const documentItem of documents) {
     const item = document.createElement("li");
     item.className = "document-item";
@@ -135,11 +146,34 @@ function renderDocuments(documents) {
     remove.className = "danger-button";
     remove.type = "button";
     remove.textContent = "Delete";
-    remove.addEventListener("click", () => deleteDocument(documentItem.id));
+    remove.addEventListener("click", () => confirmDeleteDocument(documentItem));
 
     item.append(detail, remove);
     documentList.append(item);
   }
+}
+
+function filteredDocuments() {
+  const query = documentSearch.value.trim().toLowerCase();
+  if (!query) {
+    return currentDocuments;
+  }
+  return currentDocuments.filter((documentItem) => {
+    return (
+      documentItem.filename.toLowerCase().includes(query) ||
+      documentItem.file_type.toLowerCase().includes(query)
+    );
+  });
+}
+
+function confirmDeleteDocument(documentItem) {
+  const confirmed = window.confirm(
+    `Delete "${documentItem.filename}"?\n\nThis removes the uploaded file and its indexed content.`
+  );
+  if (!confirmed) {
+    return;
+  }
+  deleteDocument(documentItem.id);
 }
 
 async function deleteDocument(documentId) {
@@ -414,6 +448,9 @@ chatForm.addEventListener("submit", async (event) => {
 });
 
 refreshDocuments.addEventListener("click", loadDocuments);
+documentSearch.addEventListener("input", () => {
+  renderDocuments(filteredDocuments());
+});
 refreshConversations.addEventListener("click", loadConversations);
 
 newConversation.addEventListener("click", () => {

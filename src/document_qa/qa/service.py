@@ -15,8 +15,11 @@ from document_qa.retrieval.vector_store import SearchResult, VectorStore
 
 
 INSUFFICIENT_CONTEXT_ANSWER = (
-    "I cannot answer from the available document context. Upload or index a relevant "
-    "document and try again."
+    "我没有在当前已上传的文档中找到足够相关的内容来回答这个问题。\n\n"
+    "你可以尝试：\n"
+    "- 换一种更具体的问法，加入文档里的关键词；\n"
+    "- 确认相关文件已经上传并解析成功；\n"
+    "- 上传包含该问题答案的文档后再提问。"
 )
 
 

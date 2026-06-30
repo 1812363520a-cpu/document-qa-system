@@ -450,7 +450,8 @@ def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["insufficient_context"] is True
-    assert "cannot answer" in body["answer"]
+    assert "没有在当前已上传的文档中找到足够相关的内容" in body["answer"]
+    assert "换一种更具体的问法" in body["answer"]
     assert body["retrieved_chunk_ids"] == []
     logs = app.state.qa_repository.list()
     assert len(logs) == 1
