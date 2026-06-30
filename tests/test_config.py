@@ -19,6 +19,14 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.delenv("DEEPSEEK_BASE_URL", raising=False)
+    monkeypatch.delenv("OPENAI_COMPATIBLE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_COMPATIBLE_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_COMPATIBLE_BASE_URL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -40,6 +48,14 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.deepseek_api_key is None
     assert settings.deepseek_model == "deepseek-v4-flash"
     assert settings.deepseek_base_url == "https://api.deepseek.com"
+    assert settings.openai_compatible_api_key is None
+    assert settings.openai_compatible_model == "gpt-4o-mini"
+    assert settings.openai_compatible_base_url is None
+    assert settings.anthropic_api_key is None
+    assert settings.anthropic_model == "claude-3-5-sonnet-latest"
+    assert settings.anthropic_base_url == "https://api.anthropic.com"
+    assert settings.ollama_model == "qwen2.5:7b"
+    assert settings.ollama_base_url == "http://localhost:11434"
 
 
 def test_settings_load_environment_overrides(monkeypatch):
@@ -60,6 +76,14 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-test-model")
     monkeypatch.setenv("DEEPSEEK_BASE_URL", "https://deepseek.example")
+    monkeypatch.setenv("OPENAI_COMPATIBLE_API_KEY", "compatible-key")
+    monkeypatch.setenv("OPENAI_COMPATIBLE_MODEL", "compatible-model")
+    monkeypatch.setenv("OPENAI_COMPATIBLE_BASE_URL", "https://compatible.example")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+    monkeypatch.setenv("ANTHROPIC_MODEL", "claude-test-model")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://anthropic.example")
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.1")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.example")
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -81,3 +105,11 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.deepseek_api_key == "deepseek-key"
     assert settings.deepseek_model == "deepseek-test-model"
     assert settings.deepseek_base_url == "https://deepseek.example"
+    assert settings.openai_compatible_api_key == "compatible-key"
+    assert settings.openai_compatible_model == "compatible-model"
+    assert settings.openai_compatible_base_url == "https://compatible.example"
+    assert settings.anthropic_api_key == "anthropic-key"
+    assert settings.anthropic_model == "claude-test-model"
+    assert settings.anthropic_base_url == "https://anthropic.example"
+    assert settings.ollama_model == "llama3.1"
+    assert settings.ollama_base_url == "http://ollama.example"
