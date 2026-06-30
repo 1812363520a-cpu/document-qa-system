@@ -136,6 +136,30 @@ class SQLiteVectorStore:
                 (document_id,),
             )
 
+    def rebuild_from_chunks(self) -> None:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, document_id, chunk_index, content, start_char, end_char
+                FROM document_chunks
+                ORDER BY document_id ASC, chunk_index ASC
+                """
+            ).fetchall()
+
+        self.upsert(
+            [
+                DocumentChunk(
+                    id=row["id"],
+                    document_id=row["document_id"],
+                    chunk_index=row["chunk_index"],
+                    content=row["content"],
+                    start_char=row["start_char"],
+                    end_char=row["end_char"],
+                )
+                for row in rows
+            ]
+        )
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
@@ -143,7 +167,21 @@ class SQLiteVectorStore:
 
 
 def _tokenize(text: str) -> set[str]:
-    return {token.lower() for token in re.findall(r"[a-zA-Z0-9]+", text)}
+    tokens = {token.lower() for token in re.findall(r"[a-zA-Z0-9]+", text)}
+    chinese_runs = re.findall(r"[\u4e00-\u9fff]+", text)
+    for run in chinese_runs:
+        tokens.update(_character_ngrams(run, min_size=1, max_size=4))
+    return tokens
+
+
+def _character_ngrams(text: str, min_size: int, max_size: int) -> set[str]:
+    grams: set[str] = set()
+    for size in range(min_size, max_size + 1):
+        if len(text) < size:
+            continue
+        for index in range(0, len(text) - size + 1):
+            grams.add(text[index : index + size])
+    return grams
 
 
 def _score(query_tokens: set[str], chunk_tokens: set[str]) -> float:

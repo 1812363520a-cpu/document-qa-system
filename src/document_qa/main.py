@@ -30,6 +30,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.state.document_repository.initialize()
     app.state.vector_store = SQLiteVectorStore(app_settings.database_path)
     app.state.vector_store.initialize()
+    app.state.vector_store.rebuild_from_chunks()
     app.state.qa_repository = SQLiteQARepository(app_settings.database_path)
     app.state.qa_repository.initialize()
     app.state.conversation_repository = SQLiteConversationRepository(app_settings.database_path)

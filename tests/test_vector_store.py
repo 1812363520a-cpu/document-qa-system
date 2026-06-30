@@ -39,6 +39,66 @@ def test_vector_store_indexes_and_searches_relevant_chunks(tmp_path):
     assert results[0].score > 0
 
 
+def test_vector_store_indexes_and_searches_chinese_chunks(tmp_path):
+    store = make_store(tmp_path)
+    store.upsert(
+        [
+            DocumentChunk(
+                id="doc-1:0",
+                document_id="doc-1",
+                chunk_index=0,
+                content="瀑布模型的优点是阶段清晰、文档驱动，适合需求明确的项目。",
+                start_char=0,
+                end_char=32,
+            )
+        ]
+    )
+
+    results = store.search("瀑布模型的优点")
+
+    assert len(results) == 1
+    assert results[0].chunk.id == "doc-1:0"
+
+
+def test_vector_store_rebuilds_index_from_persisted_document_chunks(tmp_path):
+    store = make_store(tmp_path)
+    with store._connect() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS document_chunks (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                start_char INTEGER NOT NULL,
+                end_char INTEGER NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO document_chunks (
+                id, document_id, chunk_index, content, start_char, end_char
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "doc-1:0",
+                "doc-1",
+                0,
+                "瀑布模型适合需求明确、变更较少的项目。",
+                0,
+                22,
+            ),
+        )
+
+    store.rebuild_from_chunks()
+
+    results = store.search("瀑布模型")
+    assert len(results) == 1
+    assert results[0].chunk.id == "doc-1:0"
+
+
 def test_vector_store_upsert_replaces_existing_chunk(tmp_path):
     store = make_store(tmp_path)
     store.upsert(
