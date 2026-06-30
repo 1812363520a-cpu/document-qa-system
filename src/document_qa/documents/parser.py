@@ -1,6 +1,7 @@
 import re
 from io import BytesIO
 
+from docx import Document
 from pypdf import PdfReader
 
 
@@ -17,6 +18,8 @@ class DocumentParser:
             return self._markdown_to_plain_text(text)
         if file_type == "pdf":
             return self._pdf_to_plain_text(content)
+        if file_type == "docx":
+            return self._docx_to_plain_text(content)
         raise DocumentParseError(f"Unsupported parser document type: {file_type}")
 
     def _decode_utf8(self, content: bytes) -> str:
@@ -44,4 +47,23 @@ class DocumentParser:
         text = "\n".join(page_text).strip()
         if not text:
             raise DocumentParseError("PDF did not contain extractable text")
+        return text
+
+    def _docx_to_plain_text(self, content: bytes) -> str:
+        try:
+            document = Document(BytesIO(content))
+        except Exception as exc:
+            raise DocumentParseError("Word document content could not be parsed") from exc
+
+        parts = []
+        parts.extend(paragraph.text for paragraph in document.paragraphs if paragraph.text)
+        for table in document.tables:
+            for row in table.rows:
+                cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                if cells:
+                    parts.append(" | ".join(cells))
+
+        text = "\n".join(parts).strip()
+        if not text:
+            raise DocumentParseError("Word document did not contain extractable text")
         return text

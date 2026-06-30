@@ -4,7 +4,7 @@ The Document Q&A System is a FastAPI backend that ingests supported documents, s
 
 ## Runtime flow
 
-1. A client uploads a TXT, Markdown, or PDF file through `POST /api/documents/upload`.
+1. A client uploads a TXT, Markdown, PDF, or Word `.docx` file through `POST /api/documents/upload`.
 2. The document service validates the extension, stores the source file, parses the file to plain text, chunks the text, persists document metadata and chunks, and indexes chunks in the retrieval store.
 3. A client asks a question through `POST /api/chat`.
 4. The QA service retrieves relevant chunks, loads recent conversation messages, builds provider context, calls the configured provider, persists the QA log, stores conversation messages, and returns the answer.

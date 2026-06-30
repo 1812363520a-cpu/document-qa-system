@@ -1,5 +1,6 @@
 import pytest
 from io import BytesIO
+from docx import Document
 from reportlab.pdfgen import canvas
 
 from document_qa.documents.parser import DocumentParseError, DocumentParser
@@ -10,6 +11,14 @@ def make_pdf_bytes(text: str) -> bytes:
     pdf = canvas.Canvas(buffer)
     pdf.drawString(72, 720, text)
     pdf.save()
+    return buffer.getvalue()
+
+
+def make_docx_bytes(text: str) -> bytes:
+    buffer = BytesIO()
+    document = Document()
+    document.add_paragraph(text)
+    document.save(buffer)
     return buffer.getvalue()
 
 
@@ -44,11 +53,19 @@ def test_pdf_parser_extracts_searchable_text():
     assert "PDF searchable content" in text
 
 
+def test_docx_parser_extracts_searchable_text():
+    parser = DocumentParser()
+
+    text = parser.parse("docx", make_docx_bytes("DOCX searchable content"))
+
+    assert "DOCX searchable content" in text
+
+
 def test_parser_rejects_unsupported_file_type():
     parser = DocumentParser()
 
     with pytest.raises(DocumentParseError, match="Unsupported parser document type"):
-        parser.parse("docx", b"content")
+        parser.parse("xlsx", b"content")
 
 
 def test_parser_rejects_non_utf8_content():
@@ -63,3 +80,10 @@ def test_parser_rejects_invalid_pdf_content():
 
     with pytest.raises(DocumentParseError, match="PDF content could not be parsed"):
         parser.parse("pdf", b"not a real pdf")
+
+
+def test_parser_rejects_invalid_docx_content():
+    parser = DocumentParser()
+
+    with pytest.raises(DocumentParseError, match="Word document content could not be parsed"):
+        parser.parse("docx", b"not a real docx")

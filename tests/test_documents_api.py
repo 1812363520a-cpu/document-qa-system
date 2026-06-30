@@ -1,6 +1,7 @@
 from pathlib import Path
 from io import BytesIO
 
+from docx import Document
 from fastapi.testclient import TestClient
 from reportlab.pdfgen import canvas
 
@@ -13,6 +14,14 @@ def make_pdf_bytes(text: str) -> bytes:
     pdf = canvas.Canvas(buffer)
     pdf.drawString(72, 720, text)
     pdf.save()
+    return buffer.getvalue()
+
+
+def make_docx_bytes(text: str) -> bytes:
+    buffer = BytesIO()
+    document = Document()
+    document.add_paragraph(text)
+    document.save(buffer)
     return buffer.getvalue()
 
 
@@ -90,6 +99,37 @@ def test_upload_pdf_document_persists_metadata_file_chunks_and_index(tmp_path):
     assert results[0].chunk.document_id == body["id"]
 
 
+def test_upload_docx_document_persists_metadata_file_chunks_and_index(tmp_path):
+    client, app = make_client(tmp_path)
+    content = make_docx_bytes("DOCX upload searchable content")
+
+    response = client.post(
+        "/api/documents/upload",
+        files={
+            "file": (
+                "brief.docx",
+                content,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["filename"] == "brief.docx"
+    assert body["file_type"] == "docx"
+    assert body["size_bytes"] == len(content)
+    stored_files = list(Path(app.state.settings.storage_dir).iterdir())
+    assert len(stored_files) == 1
+    assert stored_files[0].suffix == ".docx"
+    chunks = app.state.document_repository.list_chunks(body["id"])
+    assert len(chunks) == 1
+    assert "DOCX upload searchable content" in chunks[0].content
+    results = app.state.vector_store.search("DOCX searchable")
+    assert len(results) == 1
+    assert results[0].chunk.document_id == body["id"]
+
+
 def test_upload_persists_parsed_chunks(tmp_path):
     client, app = make_client(tmp_path)
 
@@ -137,6 +177,7 @@ def test_upload_unsupported_document_type_returns_clear_error(tmp_path):
     assert ".txt" in response.json()["detail"]
     assert ".md" in response.json()["detail"]
     assert ".pdf" in response.json()["detail"]
+    assert ".docx" in response.json()["detail"]
 
 
 def test_list_documents_returns_persisted_metadata(tmp_path):
@@ -194,6 +235,34 @@ def test_delete_pdf_document_removes_metadata_file_chunks_and_index(tmp_path):
                 "report.pdf",
                 make_pdf_bytes("PDF deletion searchable"),
                 "application/pdf",
+            )
+        },
+    )
+    assert upload_response.status_code == 201
+    document_id = upload_response.json()["id"]
+    stored_file = next(Path(app.state.settings.storage_dir).iterdir())
+    assert stored_file.exists()
+    assert app.state.document_repository.list_chunks(document_id)
+    assert app.state.vector_store.search("deletion")
+
+    response = client.delete(f"/api/documents/{document_id}")
+
+    assert response.status_code == 204
+    assert not stored_file.exists()
+    assert app.state.document_repository.get(document_id) is None
+    assert app.state.document_repository.list_chunks(document_id) == []
+    assert app.state.vector_store.search("deletion") == []
+
+
+def test_delete_docx_document_removes_metadata_file_chunks_and_index(tmp_path):
+    client, app = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={
+            "file": (
+                "brief.docx",
+                make_docx_bytes("DOCX deletion searchable"),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
         },
     )
