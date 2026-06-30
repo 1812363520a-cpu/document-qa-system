@@ -12,6 +12,7 @@ const refreshDocuments = document.querySelector("#refreshDocuments");
 const conversation = document.querySelector("#conversation");
 const chatForm = document.querySelector("#chatForm");
 const questionInput = document.querySelector("#questionInput");
+const sendButton = document.querySelector("#sendButton");
 const chatMessage = document.querySelector("#chatMessage");
 const newConversation = document.querySelector("#newConversation");
 
@@ -77,6 +78,7 @@ function renderDocuments(documents) {
     const name = document.createElement("div");
     name.className = "document-name";
     name.textContent = documentItem.filename;
+    name.title = documentItem.filename;
     const meta = document.createElement("div");
     meta.className = "document-meta";
     meta.textContent = `${documentTypeLabel(documentItem.file_type)} · ${formatBytes(documentItem.size_bytes)}`;
@@ -103,6 +105,50 @@ async function deleteDocument(documentId) {
   }
 }
 
+function setChatLoading(isLoading) {
+  sendButton.disabled = isLoading;
+  questionInput.disabled = isLoading;
+  sendButton.classList.toggle("is-loading", isLoading);
+  const label = sendButton.querySelector(".button-label");
+  label.textContent = isLoading ? "Sending" : "Send";
+}
+
+function createMessageBubble(role, content, options = {}) {
+  const bubble = document.createElement("article");
+  bubble.className = `bubble ${role}`;
+  if (options.pending) {
+    bubble.classList.add("pending");
+  }
+  const meta = document.createElement("div");
+  meta.className = "bubble-meta";
+  meta.textContent = role;
+  const body = document.createElement("div");
+  body.className = "bubble-content";
+  if (options.pending) {
+    const spinner = document.createElement("span");
+    spinner.className = "inline-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    const thinking = document.createElement("span");
+    thinking.textContent = content;
+    body.append(spinner, thinking);
+  } else {
+    body.textContent = content;
+  }
+  bubble.append(meta, body);
+  return bubble;
+}
+
+function appendMessage(role, content, options = {}) {
+  const empty = conversation.querySelector(".empty-state");
+  if (empty) {
+    empty.remove();
+  }
+  const bubble = createMessageBubble(role, content, options);
+  conversation.append(bubble);
+  conversation.scrollTop = conversation.scrollHeight;
+  return bubble;
+}
+
 function renderMessages(messages) {
   conversation.replaceChildren();
   if (!messages.length) {
@@ -113,15 +159,7 @@ function renderMessages(messages) {
     return;
   }
   for (const message of messages) {
-    const bubble = document.createElement("article");
-    bubble.className = `bubble ${message.role}`;
-    const meta = document.createElement("div");
-    meta.className = "bubble-meta";
-    meta.textContent = message.role;
-    const content = document.createElement("div");
-    content.textContent = message.content;
-    bubble.append(meta, content);
-    conversation.append(bubble);
+    conversation.append(createMessageBubble(message.role, message.content));
   }
   conversation.scrollTop = conversation.scrollHeight;
 }
@@ -164,8 +202,13 @@ uploadForm.addEventListener("submit", async (event) => {
 
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (sendButton.disabled) return;
   const question = questionInput.value.trim();
   if (!question) return;
+  appendMessage("user", question);
+  const pendingBubble = appendMessage("assistant", "AI is thinking", { pending: true });
+  questionInput.value = "";
+  setChatLoading(true);
   try {
     setMessage(chatMessage, "Sending");
     const payload = { question };
@@ -178,11 +221,15 @@ chatForm.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload),
     });
     state.conversationId = answer.conversation_id;
-    questionInput.value = "";
-    await loadConversation();
+    pendingBubble.replaceWith(createMessageBubble("assistant", answer.answer));
+    conversation.scrollTop = conversation.scrollHeight;
     setMessage(chatMessage, answer.insufficient_context ? "Insufficient context" : "Answered");
   } catch (error) {
+    pendingBubble.remove();
     setMessage(chatMessage, error.message, true);
+  } finally {
+    setChatLoading(false);
+    questionInput.focus();
   }
 });
 
@@ -191,6 +238,7 @@ refreshDocuments.addEventListener("click", loadDocuments);
 newConversation.addEventListener("click", () => {
   state.conversationId = null;
   renderMessages([]);
+  setChatLoading(false);
   setMessage(chatMessage, "New conversation");
 });
 
