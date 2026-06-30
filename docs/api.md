@@ -19,7 +19,7 @@ Content-Type: multipart/form-data
 
 Form fields:
 
-- `file`: `.txt`, `.md`, `.markdown`, `.pdf`, or `.docx` file.
+- `file`: `.txt`, `.md`, `.markdown`, `.pdf`, `.doc`, or `.docx` file.
 
 Returns document metadata:
 

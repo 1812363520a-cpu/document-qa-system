@@ -30,7 +30,7 @@ curl -X POST http://localhost:8000/api/documents/upload \
   -F "file=@README.md"
 ```
 
-Supported formats are TXT, Markdown, PDF, and Word `.docx`.
+Supported formats are TXT, Markdown, PDF, and Word `.doc`/`.docx`.
 
 ## List Documents
 

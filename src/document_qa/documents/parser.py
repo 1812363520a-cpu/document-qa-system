@@ -1,5 +1,8 @@
 import re
+import subprocess
+import tempfile
 from io import BytesIO
+from pathlib import Path
 
 from docx import Document
 from pypdf import PdfReader
@@ -18,6 +21,8 @@ class DocumentParser:
             return self._markdown_to_plain_text(text)
         if file_type == "pdf":
             return self._pdf_to_plain_text(content)
+        if file_type == "doc":
+            return self._doc_to_plain_text(content)
         if file_type == "docx":
             return self._docx_to_plain_text(content)
         raise DocumentParseError(f"Unsupported parser document type: {file_type}")
@@ -47,6 +52,32 @@ class DocumentParser:
         text = "\n".join(page_text).strip()
         if not text:
             raise DocumentParseError("PDF did not contain extractable text")
+        return text
+
+    def _doc_to_plain_text(self, content: bytes) -> str:
+        with tempfile.NamedTemporaryFile(suffix=".doc") as temporary_file:
+            temporary_file.write(content)
+            temporary_file.flush()
+            temporary_path = Path(temporary_file.name)
+
+            try:
+                result = subprocess.run(
+                    ["antiword", str(temporary_path)],
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                )
+            except FileNotFoundError as exc:
+                raise DocumentParseError(
+                    "Word .doc parsing requires the antiword command to be installed"
+                ) from exc
+
+        if result.returncode != 0:
+            raise DocumentParseError("Word .doc content could not be parsed")
+
+        text = result.stdout.strip()
+        if not text:
+            raise DocumentParseError("Word .doc document did not contain extractable text")
         return text
 
     def _docx_to_plain_text(self, content: bytes) -> str:

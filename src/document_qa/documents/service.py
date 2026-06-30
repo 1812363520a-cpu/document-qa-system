@@ -28,6 +28,7 @@ SUPPORTED_EXTENSIONS = {
     ".md": "markdown",
     ".markdown": "markdown",
     ".pdf": "pdf",
+    ".doc": "doc",
     ".docx": "docx",
 }
 

@@ -22,6 +22,15 @@ def make_docx_bytes(text: str) -> bytes:
     return buffer.getvalue()
 
 
+def install_fake_antiword(tmp_path, monkeypatch, output: str, exit_code: int = 0):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    antiword = bin_dir / "antiword"
+    antiword.write_text(f"#!/bin/sh\nprintf '%s' '{output}'\nexit {exit_code}\n")
+    antiword.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+
+
 def test_txt_parser_preserves_plain_text_content():
     parser = DocumentParser()
 
@@ -61,6 +70,15 @@ def test_docx_parser_extracts_searchable_text():
     assert "DOCX searchable content" in text
 
 
+def test_doc_parser_extracts_searchable_text_with_antiword(tmp_path, monkeypatch):
+    install_fake_antiword(tmp_path, monkeypatch, "DOC searchable content")
+    parser = DocumentParser()
+
+    text = parser.parse("doc", b"legacy word bytes")
+
+    assert text == "DOC searchable content"
+
+
 def test_parser_rejects_unsupported_file_type():
     parser = DocumentParser()
 
@@ -87,3 +105,19 @@ def test_parser_rejects_invalid_docx_content():
 
     with pytest.raises(DocumentParseError, match="Word document content could not be parsed"):
         parser.parse("docx", b"not a real docx")
+
+
+def test_parser_rejects_doc_when_antiword_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path))
+    parser = DocumentParser()
+
+    with pytest.raises(DocumentParseError, match="antiword command"):
+        parser.parse("doc", b"legacy word bytes")
+
+
+def test_parser_rejects_invalid_doc_content(tmp_path, monkeypatch):
+    install_fake_antiword(tmp_path, monkeypatch, "", exit_code=1)
+    parser = DocumentParser()
+
+    with pytest.raises(DocumentParseError, match="Word .doc content could not be parsed"):
+        parser.parse("doc", b"not a real doc")

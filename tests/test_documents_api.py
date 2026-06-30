@@ -25,6 +25,15 @@ def make_docx_bytes(text: str) -> bytes:
     return buffer.getvalue()
 
 
+def install_fake_antiword(tmp_path, monkeypatch, output: str):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    antiword = bin_dir / "antiword"
+    antiword.write_text(f"#!/bin/sh\nprintf '%s' '{output}'\n")
+    antiword.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+
+
 def make_client(tmp_path):
     app = create_app(
         Settings(
@@ -130,6 +139,32 @@ def test_upload_docx_document_persists_metadata_file_chunks_and_index(tmp_path):
     assert results[0].chunk.document_id == body["id"]
 
 
+def test_upload_doc_document_persists_metadata_file_chunks_and_index(tmp_path, monkeypatch):
+    install_fake_antiword(tmp_path, monkeypatch, "DOC upload searchable content")
+    client, app = make_client(tmp_path)
+    content = b"legacy word bytes"
+
+    response = client.post(
+        "/api/documents/upload",
+        files={"file": ("legacy.doc", content, "application/msword")},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["filename"] == "legacy.doc"
+    assert body["file_type"] == "doc"
+    assert body["size_bytes"] == len(content)
+    stored_files = list(Path(app.state.settings.storage_dir).iterdir())
+    assert len(stored_files) == 1
+    assert stored_files[0].suffix == ".doc"
+    chunks = app.state.document_repository.list_chunks(body["id"])
+    assert len(chunks) == 1
+    assert "DOC upload searchable content" in chunks[0].content
+    results = app.state.vector_store.search("DOC searchable")
+    assert len(results) == 1
+    assert results[0].chunk.document_id == body["id"]
+
+
 def test_upload_persists_parsed_chunks(tmp_path):
     client, app = make_client(tmp_path)
 
@@ -177,6 +212,7 @@ def test_upload_unsupported_document_type_returns_clear_error(tmp_path):
     assert ".txt" in response.json()["detail"]
     assert ".md" in response.json()["detail"]
     assert ".pdf" in response.json()["detail"]
+    assert ".doc" in response.json()["detail"]
     assert ".docx" in response.json()["detail"]
 
 
