@@ -2,6 +2,7 @@ import pytest
 
 from document_qa.core.config import Settings
 from document_qa.qa.provider import (
+    AIProviderError,
     FakeAIProvider,
     OpenAIProvider,
     ProviderConfigurationError,
@@ -31,10 +32,15 @@ class RecordingCompletions:
         return CompletionResponse()
 
 
+class FailingCompletions:
+    def create(self, **kwargs):
+        raise RuntimeError("network timeout")
+
+
 class RecordingClient:
-    def __init__(self):
+    def __init__(self, completions=None):
         self.chat = type("Chat", (), {})()
-        self.chat.completions = RecordingCompletions()
+        self.chat.completions = completions or RecordingCompletions()
 
 
 def test_provider_factory_uses_fake_provider_by_default():
@@ -68,6 +74,7 @@ def test_provider_factory_builds_openai_provider_when_configured():
     )
 
     assert isinstance(provider, OpenAIProvider)
+    assert provider.timeout_seconds == 30.0
 
 
 def test_provider_factory_builds_deepseek_provider_when_configured():
@@ -77,6 +84,7 @@ def test_provider_factory_builds_deepseek_provider_when_configured():
             deepseek_api_key="test-key",
             deepseek_model="deepseek-test-model",
             deepseek_base_url="https://example.deepseek.test",
+            ai_request_timeout_seconds=8.0,
         )
     )
 
@@ -84,6 +92,7 @@ def test_provider_factory_builds_deepseek_provider_when_configured():
     assert provider.api_key == "test-key"
     assert provider.model == "deepseek-test-model"
     assert provider.base_url == "https://example.deepseek.test"
+    assert provider.timeout_seconds == 8.0
 
 
 def test_openai_provider_sends_question_and_context_to_client():
@@ -106,3 +115,20 @@ def test_openai_provider_sends_question_and_context_to_client():
     assert call["model"] == "test-model"
     assert "What is indexed?" in call["messages"][1]["content"]
     assert "Indexed chunks are searched." in call["messages"][1]["content"]
+
+
+def test_openai_provider_wraps_client_errors():
+    client = RecordingClient(completions=FailingCompletions())
+    provider = OpenAIProvider(
+        api_key="unused-with-injected-client",
+        model="test-model",
+        client=client,
+    )
+
+    with pytest.raises(AIProviderError, match="AI provider request failed"):
+        provider.generate_answer(
+            ProviderPrompt(
+                question="What is indexed?",
+                context="[doc-1:0]\nIndexed chunks are searched.",
+            )
+        )

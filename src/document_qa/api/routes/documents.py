@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile, status
 from document_qa.documents.service import (
     DocumentIngestionError,
     DocumentNotFoundError,
+    DocumentTooLargeError,
     UnsupportedDocumentTypeError,
 )
 
@@ -21,6 +22,11 @@ async def upload_document(request: Request, file: UploadFile) -> dict[str, objec
     except DocumentIngestionError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except DocumentTooLargeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=str(exc),
         ) from exc
 

@@ -7,6 +7,7 @@ from reportlab.pdfgen import canvas
 
 from document_qa.core.config import Settings
 from document_qa.main import create_app
+from document_qa.qa.provider import AIProviderError
 
 
 def make_pdf_bytes(text: str) -> bytes:
@@ -34,7 +35,7 @@ def install_fake_antiword(tmp_path, monkeypatch, output: str, exit_code: int = 0
     monkeypatch.setenv("PATH", str(bin_dir))
 
 
-def make_client(tmp_path):
+def make_client(tmp_path, **settings_overrides):
     app = create_app(
         Settings(
             app_name="Document Q&A Test",
@@ -42,9 +43,15 @@ def make_client(tmp_path):
             api_prefix="/api",
             storage_dir=str(tmp_path / "uploads"),
             database_path=str(tmp_path / "document_qa.sqlite3"),
+            **settings_overrides,
         )
     )
     return TestClient(app), app
+
+
+class FailingProvider:
+    def generate_answer(self, prompt):
+        raise AIProviderError("AI provider request failed. Try again later.")
 
 
 def test_upload_txt_document_persists_metadata_and_file(tmp_path):
@@ -238,6 +245,20 @@ def test_upload_unsupported_document_type_returns_clear_error(tmp_path):
     assert ".docx" in response.json()["detail"]
 
 
+def test_upload_document_over_size_limit_returns_413(tmp_path):
+    client, app = make_client(tmp_path, max_upload_bytes=5)
+
+    response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"too large", "text/plain")},
+    )
+
+    assert response.status_code == 413
+    assert "exceeds" in response.json()["detail"]
+    assert "5 byte limit" in response.json()["detail"]
+    assert not Path(app.state.settings.storage_dir).exists()
+
+
 def test_list_documents_returns_persisted_metadata(tmp_path):
     client, _ = make_client(tmp_path)
     client.post(
@@ -400,6 +421,25 @@ def test_chat_returns_document_grounded_answer_and_logs_it(tmp_path):
         "How does FastAPI handle uploads?",
         body["answer"],
     ]
+
+
+def test_chat_returns_503_when_provider_fails(tmp_path):
+    client, app = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"FastAPI handles document uploads", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+    app.state.qa_service.provider = FailingProvider()
+
+    response = client.post(
+        "/api/chat",
+        json={"question": "How does FastAPI handle uploads?"},
+    )
+
+    assert response.status_code == 503
+    assert "AI provider request failed" in response.json()["detail"]
+    assert app.state.qa_repository.list() == []
 
 
 def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):

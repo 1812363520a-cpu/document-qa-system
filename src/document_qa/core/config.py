@@ -12,9 +12,11 @@ class Settings:
     log_level: str = "INFO"
     storage_dir: str = ".data/uploads"
     database_path: str = ".data/document_qa.sqlite3"
+    max_upload_bytes: int = 20 * 1024 * 1024
     chunk_size: int = 1000
     chunk_overlap: int = 200
     ai_provider: str = "fake"
+    ai_request_timeout_seconds: float = 30.0
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o-mini"
     deepseek_api_key: Optional[str] = None
@@ -38,9 +40,16 @@ def get_settings() -> Settings:
         log_level=os.getenv("LOG_LEVEL", Settings.log_level),
         storage_dir=os.getenv("STORAGE_DIR", Settings.storage_dir),
         database_path=os.getenv("DATABASE_PATH", Settings.database_path),
+        max_upload_bytes=int(os.getenv("MAX_UPLOAD_BYTES", Settings.max_upload_bytes)),
         chunk_size=int(os.getenv("CHUNK_SIZE", Settings.chunk_size)),
         chunk_overlap=int(os.getenv("CHUNK_OVERLAP", Settings.chunk_overlap)),
         ai_provider=os.getenv("AI_PROVIDER", Settings.ai_provider),
+        ai_request_timeout_seconds=float(
+            os.getenv(
+                "AI_REQUEST_TIMEOUT_SECONDS",
+                Settings.ai_request_timeout_seconds,
+            )
+        ),
         openai_api_key=os.getenv("OPENAI_API_KEY") or None,
         openai_model=os.getenv("OPENAI_MODEL", Settings.openai_model),
         deepseek_api_key=os.getenv("DEEPSEEK_API_KEY") or None,

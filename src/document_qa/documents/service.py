@@ -19,6 +19,10 @@ class DocumentIngestionError(ValueError):
     pass
 
 
+class DocumentTooLargeError(ValueError):
+    pass
+
+
 class DocumentNotFoundError(ValueError):
     pass
 
@@ -41,16 +45,22 @@ class DocumentService:
         storage_dir: str,
         chunk_size: int,
         chunk_overlap: int,
+        max_upload_bytes: int,
     ) -> None:
         self.repository = repository
         self.vector_store = vector_store
         self.storage_dir = Path(storage_dir)
+        self.max_upload_bytes = max_upload_bytes
         self.parser = DocumentParser()
         self.chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     async def upload(self, file: UploadFile) -> DocumentMetadata:
         file_type = self._file_type_for(file.filename or "")
-        content = await file.read()
+        content = await file.read(self.max_upload_bytes + 1)
+        if len(content) > self.max_upload_bytes:
+            raise DocumentTooLargeError(
+                f"Uploaded document exceeds the {self.max_upload_bytes} byte limit"
+            )
         try:
             parsed_text = self.parser.parse(file_type, content)
         except DocumentParseError as exc:

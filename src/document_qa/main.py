@@ -41,6 +41,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         storage_dir=app_settings.storage_dir,
         chunk_size=app_settings.chunk_size,
         chunk_overlap=app_settings.chunk_overlap,
+        max_upload_bytes=app_settings.max_upload_bytes,
     )
     app.state.qa_service = QAService(
         vector_store=app.state.vector_store,
