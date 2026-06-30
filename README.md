@@ -6,22 +6,60 @@ AI document question-answering system.
 
 This FastAPI backend uploads TXT, Markdown, PDF, and Word `.doc`/`.docx` documents, stores source files and metadata, parses documents into chunks, indexes chunks for local retrieval, answers document-grounded questions, tracks conversation history, and supports configurable AI providers.
 
-## Quick Start With Docker
+## Quick Start From GitHub
+
+Clone the repository:
+
+```bash
+git clone https://github.com/1812363520a-cpu/document-qa-system.git
+cd document-qa-system
+```
+
+Create a local environment file:
+
+```bash
+cp .env.example .env
+```
+
+Start the app with Docker:
 
 ```bash
 docker compose up --build
-```
-
-Check the API:
-
-```bash
-curl http://localhost:8000/api/health
 ```
 
 Open the Web UI:
 
 ```text
 http://localhost:8000/
+```
+
+Check the API health endpoint:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+Stop the app:
+
+```bash
+docker compose down
+```
+
+## Use DeepSeek
+
+Edit `.env` and set:
+
+```env
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your-deepseek-api-key
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+Restart Docker after changing `.env`:
+
+```bash
+docker compose up --build
 ```
 
 ## Local Development
