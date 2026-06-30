@@ -119,5 +119,5 @@ def test_parser_rejects_invalid_doc_content(tmp_path, monkeypatch):
     install_fake_antiword(tmp_path, monkeypatch, "", exit_code=1)
     parser = DocumentParser()
 
-    with pytest.raises(DocumentParseError, match="Word .doc content could not be parsed"):
+    with pytest.raises(DocumentParseError, match="legacy Word 97-2003"):
         parser.parse("doc", b"not a real doc")

@@ -73,7 +73,14 @@ class DocumentParser:
                 ) from exc
 
         if result.returncode != 0:
-            raise DocumentParseError("Word .doc content could not be parsed")
+            detail = (result.stderr or result.stdout).strip()
+            message = (
+                "Word .doc content could not be parsed. Make sure the file is a "
+                "legacy Word 97-2003 .doc file and is not encrypted or corrupted."
+            )
+            if detail:
+                message = f"{message} Parser detail: {detail}"
+            raise DocumentParseError(message)
 
         text = result.stdout.strip()
         if not text:
