@@ -35,6 +35,7 @@ The first document endpoints are:
 ```text
 POST /api/documents/upload
 GET /api/documents
+DELETE /api/documents/{document_id}
 ```
 
 Uploaded TXT and Markdown documents are parsed into plain text and split into persisted chunks during ingestion.

@@ -125,3 +125,50 @@ def test_list_documents_returns_persisted_metadata(tmp_path):
     ]
     assert [document["file_type"] for document in documents] == ["txt", "markdown"]
     assert {document["size_bytes"] for document in documents} == {5, 4}
+
+
+def test_delete_document_removes_metadata_file_chunks_and_index(tmp_path):
+    client, app = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"alpha searchable", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+    document_id = upload_response.json()["id"]
+    stored_file = next(Path(app.state.settings.storage_dir).iterdir())
+    assert stored_file.exists()
+    assert app.state.document_repository.list_chunks(document_id)
+    assert app.state.vector_store.search("alpha")
+
+    response = client.delete(f"/api/documents/{document_id}")
+
+    assert response.status_code == 204
+    assert not stored_file.exists()
+    assert app.state.document_repository.get(document_id) is None
+    assert app.state.document_repository.list_chunks(document_id) == []
+    assert app.state.vector_store.search("alpha") == []
+
+
+def test_delete_missing_document_returns_404(tmp_path):
+    client, _ = make_client(tmp_path)
+
+    response = client.delete("/api/documents/missing-document")
+
+    assert response.status_code == 404
+    assert "Document not found" in response.json()["detail"]
+
+
+def test_list_documents_excludes_deleted_document(tmp_path):
+    client, _ = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"alpha", "text/plain")},
+    )
+    document_id = upload_response.json()["id"]
+
+    delete_response = client.delete(f"/api/documents/{document_id}")
+    list_response = client.get("/api/documents")
+
+    assert delete_response.status_code == 204
+    assert list_response.status_code == 200
+    assert list_response.json() == []

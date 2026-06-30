@@ -19,6 +19,10 @@ class DocumentIngestionError(ValueError):
     pass
 
 
+class DocumentNotFoundError(ValueError):
+    pass
+
+
 SUPPORTED_EXTENSIONS = {
     ".txt": "txt",
     ".md": "markdown",
@@ -70,6 +74,18 @@ class DocumentService:
 
     def list_documents(self) -> list[DocumentMetadata]:
         return self.repository.list()
+
+    def delete_document(self, document_id: str) -> None:
+        document = self.repository.get(document_id)
+        if document is None:
+            raise DocumentNotFoundError(f"Document not found: {document_id}")
+
+        self.repository.delete(document_id)
+        self.vector_store.delete_by_document(document_id)
+
+        storage_path = Path(document.storage_path)
+        if storage_path.exists():
+            storage_path.unlink()
 
     def _file_type_for(self, filename: str) -> str:
         suffix = Path(filename).suffix.lower()

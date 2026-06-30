@@ -11,10 +11,16 @@ class DocumentRepository(Protocol):
     def add(self, document: DocumentMetadata, chunks: list[DocumentChunk]) -> None:
         ...
 
+    def get(self, document_id: str) -> DocumentMetadata | None:
+        ...
+
     def list(self) -> list[DocumentMetadata]:
         ...
 
     def list_chunks(self, document_id: str) -> list[DocumentChunk]:
+        ...
+
+    def delete(self, document_id: str) -> None:
         ...
 
 
@@ -47,7 +53,7 @@ class SQLiteDocumentRepository:
                     content TEXT NOT NULL,
                     start_char INTEGER NOT NULL,
                     end_char INTEGER NOT NULL,
-                    FOREIGN KEY(document_id) REFERENCES documents(id)
+                    FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE
                 )
                 """
             )
@@ -106,6 +112,21 @@ class SQLiteDocumentRepository:
                 ],
             )
 
+    def get(self, document_id: str) -> DocumentMetadata | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, filename, file_type, uploaded_at, size_bytes, storage_path
+                FROM documents
+                WHERE id = ?
+                """,
+                (document_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+        return self._document_from_row(row)
+
     def list(self) -> list[DocumentMetadata]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -116,17 +137,7 @@ class SQLiteDocumentRepository:
                 """
             ).fetchall()
 
-        return [
-            DocumentMetadata(
-                id=row["id"],
-                filename=row["filename"],
-                file_type=row["file_type"],
-                uploaded_at=row["uploaded_at"],
-                size_bytes=row["size_bytes"],
-                storage_path=row["storage_path"],
-            )
-            for row in rows
-        ]
+        return [self._document_from_row(row) for row in rows]
 
     def list_chunks(self, document_id: str) -> list[DocumentChunk]:
         with self._connect() as connection:
@@ -152,7 +163,28 @@ class SQLiteDocumentRepository:
             for row in rows
         ]
 
+    def delete(self, document_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM document_chunks WHERE document_id = ?",
+                (document_id,),
+            )
+            connection.execute(
+                "DELETE FROM documents WHERE id = ?",
+                (document_id,),
+            )
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
         return connection
+
+    def _document_from_row(self, row: sqlite3.Row) -> DocumentMetadata:
+        return DocumentMetadata(
+            id=row["id"],
+            filename=row["filename"],
+            file_type=row["file_type"],
+            uploaded_at=row["uploaded_at"],
+            size_bytes=row["size_bytes"],
+            storage_path=row["storage_path"],
+        )
