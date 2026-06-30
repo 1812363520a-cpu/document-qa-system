@@ -9,6 +9,8 @@ class Settings:
     app_env: str = "local"
     api_prefix: str = "/api"
     log_level: str = "INFO"
+    storage_dir: str = ".data/uploads"
+    database_path: str = ".data/document_qa.sqlite3"
 
 
 def _normalized_api_prefix(value: str) -> str:
@@ -25,4 +27,6 @@ def get_settings() -> Settings:
         app_env=os.getenv("APP_ENV", Settings.app_env),
         api_prefix=_normalized_api_prefix(os.getenv("API_PREFIX", Settings.api_prefix)),
         log_level=os.getenv("LOG_LEVEL", Settings.log_level),
+        storage_dir=os.getenv("STORAGE_DIR", Settings.storage_dir),
+        database_path=os.getenv("DATABASE_PATH", Settings.database_path),
     )

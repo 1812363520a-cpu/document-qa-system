@@ -6,6 +6,8 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("API_PREFIX", raising=False)
     monkeypatch.delenv("LOG_LEVEL", raising=False)
+    monkeypatch.delenv("STORAGE_DIR", raising=False)
+    monkeypatch.delenv("DATABASE_PATH", raising=False)
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -14,6 +16,8 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.app_env == "local"
     assert settings.api_prefix == "/api"
     assert settings.log_level == "INFO"
+    assert settings.storage_dir == ".data/uploads"
+    assert settings.database_path == ".data/document_qa.sqlite3"
 
 
 def test_settings_load_environment_overrides(monkeypatch):
@@ -21,6 +25,8 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("API_PREFIX", "v1")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("STORAGE_DIR", "/tmp/uploads")
+    monkeypatch.setenv("DATABASE_PATH", "/tmp/document_qa.sqlite3")
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -29,3 +35,5 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.app_env == "test"
     assert settings.api_prefix == "/v1"
     assert settings.log_level == "DEBUG"
+    assert settings.storage_dir == "/tmp/uploads"
+    assert settings.database_path == "/tmp/document_qa.sqlite3"

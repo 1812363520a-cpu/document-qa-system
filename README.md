@@ -30,4 +30,11 @@ The health check is available at:
 GET /api/health
 ```
 
+The first document endpoints are:
+
+```text
+POST /api/documents/upload
+GET /api/documents
+```
+
 Configuration is loaded from environment variables. See `.env.example` for the current local defaults.
