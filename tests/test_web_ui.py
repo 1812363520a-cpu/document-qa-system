@@ -25,6 +25,9 @@ def test_web_ui_root_serves_index(tmp_path):
     assert response.status_code == 200
     assert "Document Q&A" in response.text
     assert "/assets/app.js" in response.text
+    assert 'role="tablist"' in response.text
+    assert 'id="documentsTab"' in response.text
+    assert 'id="conversationsTab"' in response.text
     assert 'id="sendButton"' in response.text
     assert 'id="documentSearch"' in response.text
     assert 'id="conversationList"' in response.text
@@ -39,6 +42,7 @@ def test_web_ui_static_assets_are_served(tmp_path):
 
     assert script_response.status_code == 200
     assert "loadDocuments" in script_response.text
+    assert "activateTab" in script_response.text
     assert "filteredDocuments" in script_response.text
     assert "confirmDeleteDocument" in script_response.text
     assert "window.confirm" in script_response.text
@@ -50,6 +54,9 @@ def test_web_ui_static_assets_are_served(tmp_path):
     assert "AI is thinking" in script_response.text
     assert style_response.status_code == 200
     assert ".layout-grid" in style_response.text
+    assert ".sidebar-tabs" in style_response.text
+    assert ".tab-button.active" in style_response.text
+    assert "overflow: auto" in style_response.text
     assert ".search-input" in style_response.text
     assert ".empty-list-item" in style_response.text
     assert ".conversation-item" in style_response.text

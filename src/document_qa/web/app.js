@@ -19,6 +19,8 @@ const questionInput = document.querySelector("#questionInput");
 const sendButton = document.querySelector("#sendButton");
 const chatMessage = document.querySelector("#chatMessage");
 const newConversation = document.querySelector("#newConversation");
+const tabButtons = document.querySelectorAll(".tab-button");
+const tabPanels = document.querySelectorAll("[role='tabpanel']");
 
 let currentDocuments = [];
 
@@ -53,6 +55,19 @@ function formatBytes(value) {
 
 function documentTypeLabel(fileType) {
   return fileType.toUpperCase();
+}
+
+function activateTab(panelId) {
+  for (const button of tabButtons) {
+    const isActive = button.dataset.tabTarget === panelId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  }
+  for (const panel of tabPanels) {
+    const isActive = panel.id === panelId;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  }
 }
 
 async function checkApi() {
@@ -452,6 +467,9 @@ documentSearch.addEventListener("input", () => {
   renderDocuments(filteredDocuments());
 });
 refreshConversations.addEventListener("click", loadConversations);
+for (const button of tabButtons) {
+  button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+}
 
 newConversation.addEventListener("click", () => {
   state.conversationId = null;

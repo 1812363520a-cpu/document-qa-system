@@ -18,8 +18,13 @@
         </header>
 
         <div class="layout-grid">
-          <aside class="documents-panel" aria-label="Documents">
-            <div class="sidebar-section documents-section">
+          <aside class="documents-panel" aria-label="Workspace navigation">
+            <div class="sidebar-tabs" role="tablist" aria-label="Workspace sections">
+              <button class="tab-button active" id="documentsTab" type="button" role="tab" aria-selected="true" aria-controls="documentsPanel" data-tab-target="documentsPanel" title="Documents">Docs</button>
+              <button class="tab-button" id="conversationsTab" type="button" role="tab" aria-selected="false" aria-controls="conversationsPanel" data-tab-target="conversationsPanel" title="Conversations">Chats</button>
+            </div>
+
+            <div class="sidebar-section documents-section active" id="documentsPanel" role="tabpanel" aria-labelledby="documentsTab">
               <div class="panel-header">
                 <h2>Documents</h2>
                 <button class="icon-button" id="refreshDocuments" type="button" title="Refresh documents" aria-label="Refresh documents">
@@ -41,7 +46,7 @@
               <ul class="document-list" id="documentList" aria-label="Uploaded documents"></ul>
             </div>
 
-            <div class="sidebar-section conversations-section">
+            <div class="sidebar-section conversations-section" id="conversationsPanel" role="tabpanel" aria-labelledby="conversationsTab" hidden>
               <div class="panel-header compact">
                 <h2>Conversations</h2>
                 <button class="icon-button" id="refreshConversations" type="button" title="Refresh conversations" aria-label="Refresh conversations">
