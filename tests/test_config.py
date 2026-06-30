@@ -13,6 +13,9 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("AI_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_BASE_URL", raising=False)
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -28,6 +31,9 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.ai_provider == "fake"
     assert settings.openai_api_key is None
     assert settings.openai_model == "gpt-4o-mini"
+    assert settings.deepseek_api_key is None
+    assert settings.deepseek_model == "deepseek-v4-flash"
+    assert settings.deepseek_base_url == "https://api.deepseek.com"
 
 
 def test_settings_load_environment_overrides(monkeypatch):
@@ -42,6 +48,9 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("AI_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-test-model")
+    monkeypatch.setenv("DEEPSEEK_BASE_URL", "https://deepseek.example")
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -57,3 +66,6 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.ai_provider == "openai"
     assert settings.openai_api_key == "test-key"
     assert settings.openai_model == "test-model"
+    assert settings.deepseek_api_key == "deepseek-key"
+    assert settings.deepseek_model == "deepseek-test-model"
+    assert settings.deepseek_base_url == "https://deepseek.example"

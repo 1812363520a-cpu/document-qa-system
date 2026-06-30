@@ -51,7 +51,7 @@ Then open `http://localhost:8000/` to use the Web UI for uploading documents, ma
 ## Configuration
 
 Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, chunking, and provider settings.
-`AI_PROVIDER=fake` is the deterministic local default. Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to use the OpenAI provider.
+`AI_PROVIDER=fake` is the deterministic local default. Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to use OpenAI. Set `AI_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, and optionally `DEEPSEEK_MODEL` to use DeepSeek.
 
 ## Try The API
 

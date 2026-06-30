@@ -17,6 +17,9 @@ class Settings:
     ai_provider: str = "fake"
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o-mini"
+    deepseek_api_key: Optional[str] = None
+    deepseek_model: str = "deepseek-v4-flash"
+    deepseek_base_url: str = "https://api.deepseek.com"
 
 
 def _normalized_api_prefix(value: str) -> str:
@@ -40,4 +43,7 @@ def get_settings() -> Settings:
         ai_provider=os.getenv("AI_PROVIDER", Settings.ai_provider),
         openai_api_key=os.getenv("OPENAI_API_KEY") or None,
         openai_model=os.getenv("OPENAI_MODEL", Settings.openai_model),
+        deepseek_api_key=os.getenv("DEEPSEEK_API_KEY") or None,
+        deepseek_model=os.getenv("DEEPSEEK_MODEL", Settings.deepseek_model),
+        deepseek_base_url=os.getenv("DEEPSEEK_BASE_URL", Settings.deepseek_base_url),
     )

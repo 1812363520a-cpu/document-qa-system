@@ -48,6 +48,11 @@ def test_provider_factory_requires_openai_api_key():
         build_ai_provider(Settings(ai_provider="openai", openai_api_key=None))
 
 
+def test_provider_factory_requires_deepseek_api_key():
+    with pytest.raises(ProviderConfigurationError, match="DEEPSEEK_API_KEY"):
+        build_ai_provider(Settings(ai_provider="deepseek", deepseek_api_key=None))
+
+
 def test_provider_factory_rejects_unsupported_provider():
     with pytest.raises(ProviderConfigurationError, match="Unsupported AI_PROVIDER"):
         build_ai_provider(Settings(ai_provider="claude"))
@@ -63,6 +68,22 @@ def test_provider_factory_builds_openai_provider_when_configured():
     )
 
     assert isinstance(provider, OpenAIProvider)
+
+
+def test_provider_factory_builds_deepseek_provider_when_configured():
+    provider = build_ai_provider(
+        Settings(
+            ai_provider="deepseek",
+            deepseek_api_key="test-key",
+            deepseek_model="deepseek-test-model",
+            deepseek_base_url="https://example.deepseek.test",
+        )
+    )
+
+    assert isinstance(provider, OpenAIProvider)
+    assert provider.api_key == "test-key"
+    assert provider.model == "deepseek-test-model"
+    assert provider.base_url == "https://example.deepseek.test"
 
 
 def test_openai_provider_sends_question_and_context_to_client():

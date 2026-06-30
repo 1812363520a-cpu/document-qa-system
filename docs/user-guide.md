@@ -86,3 +86,22 @@ For Docker Compose:
 ```bash
 AI_PROVIDER=openai OPENAI_API_KEY=your-api-key docker compose up --build
 ```
+
+## Use DeepSeek
+
+DeepSeek is supported through its OpenAI-compatible chat completions API. To use DeepSeek locally:
+
+```bash
+export AI_PROVIDER=deepseek
+export DEEPSEEK_API_KEY=your-api-key
+export DEEPSEEK_MODEL=deepseek-v4-flash
+uvicorn document_qa.main:app --reload
+```
+
+For Docker Compose:
+
+```bash
+AI_PROVIDER=deepseek DEEPSEEK_API_KEY=your-api-key docker compose up --build
+```
+
+The default DeepSeek base URL is `https://api.deepseek.com`. Override `DEEPSEEK_BASE_URL` only if you need a compatible proxy or custom endpoint.
