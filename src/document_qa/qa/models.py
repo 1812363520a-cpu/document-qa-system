@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class QuestionAnswerLog:
     id: str
+    conversation_id: str
     question: str
     answer: str
     created_at: str
@@ -17,6 +18,7 @@ class QAResponse:
     insufficient_context: bool
     retrieved_chunk_ids: list[str]
     log_id: str
+    conversation_id: str
 
     def to_api_dict(self) -> dict[str, object]:
         return {
@@ -24,4 +26,25 @@ class QAResponse:
             "insufficient_context": self.insufficient_context,
             "retrieved_chunk_ids": self.retrieved_chunk_ids,
             "log_id": self.log_id,
+            "conversation_id": self.conversation_id,
+        }
+
+
+@dataclass(frozen=True)
+class ConversationMessage:
+    id: str
+    conversation_id: str
+    role: str
+    content: str
+    created_at: str
+    sequence: int
+
+    def to_api_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "conversation_id": self.conversation_id,
+            "role": self.role,
+            "content": self.content,
+            "created_at": self.created_at,
+            "sequence": self.sequence,
         }

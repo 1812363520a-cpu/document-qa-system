@@ -28,6 +28,7 @@ class SQLiteQARepository:
                 """
                 CREATE TABLE IF NOT EXISTS qa_logs (
                     id TEXT PRIMARY KEY,
+                    conversation_id TEXT NOT NULL,
                     question TEXT NOT NULL,
                     answer TEXT NOT NULL,
                     created_at TEXT NOT NULL,
@@ -36,6 +37,7 @@ class SQLiteQARepository:
                 )
                 """
             )
+            self._ensure_conversation_id_column(connection)
 
     def add(self, log: QuestionAnswerLog) -> None:
         with self._connect() as connection:
@@ -43,16 +45,18 @@ class SQLiteQARepository:
                 """
                 INSERT INTO qa_logs (
                     id,
+                    conversation_id,
                     question,
                     answer,
                     created_at,
                     retrieved_chunk_ids,
                     insufficient_context
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     log.id,
+                    log.conversation_id,
                     log.question,
                     log.answer,
                     log.created_at,
@@ -65,7 +69,7 @@ class SQLiteQARepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT id, question, answer, created_at, retrieved_chunk_ids, insufficient_context
+                SELECT id, conversation_id, question, answer, created_at, retrieved_chunk_ids, insufficient_context
                 FROM qa_logs
                 ORDER BY created_at ASC
                 """
@@ -74,6 +78,7 @@ class SQLiteQARepository:
         return [
             QuestionAnswerLog(
                 id=row["id"],
+                conversation_id=row["conversation_id"],
                 question=row["question"],
                 answer=row["answer"],
                 created_at=row["created_at"],
@@ -87,3 +92,13 @@ class SQLiteQARepository:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
         return connection
+
+    def _ensure_conversation_id_column(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(qa_logs)").fetchall()
+        }
+        if "conversation_id" not in columns:
+            connection.execute(
+                "ALTER TABLE qa_logs ADD COLUMN conversation_id TEXT NOT NULL DEFAULT ''"
+            )

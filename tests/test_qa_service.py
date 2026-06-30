@@ -1,5 +1,5 @@
 from document_qa.documents.models import DocumentChunk
-from document_qa.qa.models import QuestionAnswerLog
+from document_qa.qa.models import ConversationMessage, QuestionAnswerLog
 from document_qa.qa.provider import ProviderPrompt
 from document_qa.qa.service import INSUFFICIENT_CONTEXT_ANSWER, QAService
 from document_qa.retrieval.vector_store import SearchResult
@@ -35,6 +35,34 @@ class InMemoryQARepository:
         return self.logs
 
 
+class InMemoryConversationRepository:
+    def __init__(self):
+        self.conversations = set()
+        self.messages = {}
+
+    def create_conversation(self, conversation_id: str, created_at: str) -> None:
+        self.conversations.add(conversation_id)
+        self.messages.setdefault(conversation_id, [])
+
+    def conversation_exists(self, conversation_id: str) -> bool:
+        return conversation_id in self.conversations
+
+    def add_message(self, message: ConversationMessage) -> None:
+        self.messages.setdefault(message.conversation_id, []).append(message)
+
+    def list_messages(self, conversation_id: str):
+        return sorted(
+            self.messages.get(conversation_id, []),
+            key=lambda message: message.sequence,
+        )
+
+    def next_sequence(self, conversation_id: str) -> int:
+        messages = self.messages.get(conversation_id, [])
+        if not messages:
+            return 0
+        return max(message.sequence for message in messages) + 1
+
+
 def test_qa_service_retrieves_context_invokes_provider_and_persists_answer():
     chunk = DocumentChunk(
         id="doc-1:0",
@@ -47,10 +75,12 @@ def test_qa_service_retrieves_context_invokes_provider_and_persists_answer():
     vector_store = RecordingVectorStore([SearchResult(chunk=chunk, score=0.8)])
     provider = RecordingProvider()
     repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
     service = QAService(
         vector_store=vector_store,
         provider=provider,
         repository=repository,
+        conversation_repository=conversation_repository,
         retrieval_limit=3,
     )
 
@@ -62,23 +92,30 @@ def test_qa_service_retrieves_context_invokes_provider_and_persists_answer():
     assert "[doc-1:0]" in provider.prompts[0].context
     assert "FastAPI handles document uploads." in provider.prompts[0].context
     assert response.answer == "generated answer"
+    assert response.conversation_id
     assert response.insufficient_context is False
     assert response.retrieved_chunk_ids == ["doc-1:0"]
     assert len(repository.logs) == 1
+    assert repository.logs[0].conversation_id == response.conversation_id
     assert repository.logs[0].question == "How are uploads handled?"
     assert repository.logs[0].answer == "generated answer"
     assert repository.logs[0].retrieved_chunk_ids == ["doc-1:0"]
     assert repository.logs[0].insufficient_context is False
+    messages = conversation_repository.list_messages(response.conversation_id)
+    assert [message.role for message in messages] == ["user", "assistant"]
+    assert [message.sequence for message in messages] == [0, 1]
 
 
 def test_qa_service_returns_insufficient_context_without_provider_call():
     vector_store = RecordingVectorStore([])
     provider = RecordingProvider()
     repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
     service = QAService(
         vector_store=vector_store,
         provider=provider,
         repository=repository,
+        conversation_repository=conversation_repository,
     )
 
     response = service.answer_question("Unknown topic?")
@@ -89,3 +126,34 @@ def test_qa_service_returns_insufficient_context_without_provider_call():
     assert response.retrieved_chunk_ids == []
     assert len(repository.logs) == 1
     assert repository.logs[0].insufficient_context is True
+
+
+def test_qa_service_reuses_conversation_and_includes_recent_history():
+    chunk = DocumentChunk(
+        id="doc-1:0",
+        document_id="doc-1",
+        chunk_index=0,
+        content="Uploads are handled by FastAPI.",
+        start_char=0,
+        end_char=31,
+    )
+    vector_store = RecordingVectorStore([SearchResult(chunk=chunk, score=0.8)])
+    provider = RecordingProvider()
+    repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
+    service = QAService(
+        vector_store=vector_store,
+        provider=provider,
+        repository=repository,
+        conversation_repository=conversation_repository,
+    )
+
+    first = service.answer_question("How are uploads handled?")
+    second = service.answer_question("Can you repeat that?", conversation_id=first.conversation_id)
+
+    assert second.conversation_id == first.conversation_id
+    assert "Recent conversation:" in provider.prompts[1].context
+    assert "user: How are uploads handled?" in provider.prompts[1].context
+    assert "assistant: generated answer" in provider.prompts[1].context
+    messages = conversation_repository.list_messages(first.conversation_id)
+    assert [message.sequence for message in messages] == [0, 1, 2, 3]

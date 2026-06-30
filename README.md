@@ -37,10 +37,11 @@ POST /api/documents/upload
 GET /api/documents
 DELETE /api/documents/{document_id}
 POST /api/chat
+GET /api/conversations/{conversation_id}/messages
 ```
 
 Uploaded TXT and Markdown documents are parsed into plain text and split into persisted chunks during ingestion.
 Chunks are also indexed in the local SQLite-backed retrieval store for MVP search.
-The chat endpoint retrieves relevant chunks, calls the configured provider, and logs each question and answer.
+The chat endpoint retrieves relevant chunks, includes recent conversation history, calls the configured provider, and logs each question and answer.
 
 Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, and chunking settings.

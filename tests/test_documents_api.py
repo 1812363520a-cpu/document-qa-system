@@ -193,12 +193,22 @@ def test_chat_returns_document_grounded_answer_and_logs_it(tmp_path):
     assert body["insufficient_context"] is False
     assert body["retrieved_chunk_ids"]
     assert body["log_id"]
+    assert body["conversation_id"]
     logs = app.state.qa_repository.list()
     assert len(logs) == 1
     assert logs[0].question == "How does FastAPI handle uploads?"
+    assert logs[0].conversation_id == body["conversation_id"]
     assert logs[0].answer == body["answer"]
     assert logs[0].retrieved_chunk_ids == body["retrieved_chunk_ids"]
     assert logs[0].insufficient_context is False
+    messages_response = client.get(f"/api/conversations/{body['conversation_id']}/messages")
+    assert messages_response.status_code == 200
+    messages = messages_response.json()
+    assert [message["role"] for message in messages] == ["user", "assistant"]
+    assert [message["content"] for message in messages] == [
+        "How does FastAPI handle uploads?",
+        body["answer"],
+    ]
 
 
 def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):
@@ -214,3 +224,38 @@ def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):
     logs = app.state.qa_repository.list()
     assert len(logs) == 1
     assert logs[0].insufficient_context is True
+
+
+def test_chat_reuses_conversation_for_follow_up_questions(tmp_path):
+    client, _ = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"FastAPI handles document uploads", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+    first_response = client.post(
+        "/api/chat",
+        json={"question": "How does FastAPI handle uploads?"},
+    )
+    conversation_id = first_response.json()["conversation_id"]
+
+    second_response = client.post(
+        "/api/chat",
+        json={
+            "question": "Can you restate that?",
+            "conversation_id": conversation_id,
+        },
+    )
+    messages_response = client.get(f"/api/conversations/{conversation_id}/messages")
+
+    assert second_response.status_code == 200
+    assert second_response.json()["conversation_id"] == conversation_id
+    assert messages_response.status_code == 200
+    messages = messages_response.json()
+    assert [message["role"] for message in messages] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+    assert [message["sequence"] for message in messages] == [0, 1, 2, 3]
