@@ -25,11 +25,11 @@ def make_docx_bytes(text: str) -> bytes:
     return buffer.getvalue()
 
 
-def install_fake_antiword(tmp_path, monkeypatch, output: str):
+def install_fake_antiword(tmp_path, monkeypatch, output: str, exit_code: int = 0):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     antiword = bin_dir / "antiword"
-    antiword.write_text(f"#!/bin/sh\nprintf '%s' '{output}'\n")
+    antiword.write_text(f"#!/bin/sh\nprintf '%s' '{output}'\nexit {exit_code}\n")
     antiword.chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir))
 
@@ -163,6 +163,28 @@ def test_upload_doc_document_persists_metadata_file_chunks_and_index(tmp_path, m
     results = app.state.vector_store.search("DOC searchable")
     assert len(results) == 1
     assert results[0].chunk.document_id == body["id"]
+
+
+def test_upload_doc_document_falls_back_to_html_content(tmp_path, monkeypatch):
+    install_fake_antiword(tmp_path, monkeypatch, "not a word document", exit_code=1)
+    client, app = make_client(tmp_path)
+    content = (
+        "<html><body><h1>HTML DOC upload</h1>"
+        "<p>Fallback searchable content</p></body></html>"
+    ).encode("utf-8")
+
+    response = client.post(
+        "/api/documents/upload",
+        files={"file": ("wps-export.doc", content, "application/msword")},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["file_type"] == "doc"
+    chunks = app.state.document_repository.list_chunks(body["id"])
+    assert len(chunks) == 1
+    assert "HTML DOC upload" in chunks[0].content
+    assert "Fallback searchable content" in chunks[0].content
 
 
 def test_upload_persists_parsed_chunks(tmp_path):
