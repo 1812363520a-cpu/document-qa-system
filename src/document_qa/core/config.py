@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -13,6 +14,9 @@ class Settings:
     database_path: str = ".data/document_qa.sqlite3"
     chunk_size: int = 1000
     chunk_overlap: int = 200
+    ai_provider: str = "fake"
+    openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4o-mini"
 
 
 def _normalized_api_prefix(value: str) -> str:
@@ -33,4 +37,7 @@ def get_settings() -> Settings:
         database_path=os.getenv("DATABASE_PATH", Settings.database_path),
         chunk_size=int(os.getenv("CHUNK_SIZE", Settings.chunk_size)),
         chunk_overlap=int(os.getenv("CHUNK_OVERLAP", Settings.chunk_overlap)),
+        ai_provider=os.getenv("AI_PROVIDER", Settings.ai_provider),
+        openai_api_key=os.getenv("OPENAI_API_KEY") or None,
+        openai_model=os.getenv("OPENAI_MODEL", Settings.openai_model),
     )

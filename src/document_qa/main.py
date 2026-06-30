@@ -10,7 +10,7 @@ from document_qa.documents.service import DocumentService
 from document_qa.persistence.conversations import SQLiteConversationRepository
 from document_qa.persistence.documents import SQLiteDocumentRepository
 from document_qa.persistence.qa_logs import SQLiteQARepository
-from document_qa.qa.provider import FakeAIProvider
+from document_qa.qa.provider import build_ai_provider
 from document_qa.qa.service import QAService
 from document_qa.retrieval.vector_store import SQLiteVectorStore
 
@@ -37,7 +37,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     )
     app.state.qa_service = QAService(
         vector_store=app.state.vector_store,
-        provider=FakeAIProvider(),
+        provider=build_ai_provider(app_settings),
         repository=app.state.qa_repository,
         conversation_repository=app.state.conversation_repository,
     )

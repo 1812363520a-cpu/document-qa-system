@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
+
+from openai import OpenAI
+
+from document_qa.core.config import Settings
 
 
 @dataclass(frozen=True)
@@ -18,3 +22,60 @@ class AIProvider(Protocol):
 class FakeAIProvider:
     def generate_answer(self, prompt: ProviderPrompt) -> str:
         return f"Fake answer for '{prompt.question}' based on retrieved document context."
+
+
+class ProviderConfigurationError(ValueError):
+    pass
+
+
+class OpenAIProvider:
+    def __init__(self, api_key: str, model: str, client: Any = None) -> None:
+        self.api_key = api_key
+        self.model = model
+        self.client = client
+
+    def generate_answer(self, prompt: ProviderPrompt) -> str:
+        response = self._client().chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Answer the user's question using only the provided document "
+                        "context and recent conversation history."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Question:\n{prompt.question}\n\n"
+                        f"Context:\n{prompt.context}"
+                    ),
+                },
+            ],
+        )
+        answer = response.choices[0].message.content
+        return answer or ""
+
+    def _client(self) -> Any:
+        if self.client is None:
+            self.client = OpenAI(api_key=self.api_key)
+        return self.client
+
+
+def build_ai_provider(settings: Settings) -> AIProvider:
+    provider_name = settings.ai_provider.strip().lower()
+    if provider_name == "fake":
+        return FakeAIProvider()
+    if provider_name == "openai":
+        if not settings.openai_api_key:
+            raise ProviderConfigurationError(
+                "OPENAI_API_KEY is required when AI_PROVIDER=openai"
+            )
+        return OpenAIProvider(
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
+    raise ProviderConfigurationError(
+        f"Unsupported AI_PROVIDER '{settings.ai_provider}'. Supported providers: fake, openai"
+    )

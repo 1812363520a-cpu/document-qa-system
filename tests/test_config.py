@@ -10,6 +10,9 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("DATABASE_PATH", raising=False)
     monkeypatch.delenv("CHUNK_SIZE", raising=False)
     monkeypatch.delenv("CHUNK_OVERLAP", raising=False)
+    monkeypatch.delenv("AI_PROVIDER", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -22,6 +25,9 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.database_path == ".data/document_qa.sqlite3"
     assert settings.chunk_size == 1000
     assert settings.chunk_overlap == 200
+    assert settings.ai_provider == "fake"
+    assert settings.openai_api_key is None
+    assert settings.openai_model == "gpt-4o-mini"
 
 
 def test_settings_load_environment_overrides(monkeypatch):
@@ -33,6 +39,9 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("DATABASE_PATH", "/tmp/document_qa.sqlite3")
     monkeypatch.setenv("CHUNK_SIZE", "256")
     monkeypatch.setenv("CHUNK_OVERLAP", "32")
+    monkeypatch.setenv("AI_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "test-model")
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -45,3 +54,6 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.database_path == "/tmp/document_qa.sqlite3"
     assert settings.chunk_size == 256
     assert settings.chunk_overlap == 32
+    assert settings.ai_provider == "openai"
+    assert settings.openai_api_key == "test-key"
+    assert settings.openai_model == "test-model"

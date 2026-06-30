@@ -45,3 +45,4 @@ Chunks are also indexed in the local SQLite-backed retrieval store for MVP searc
 The chat endpoint retrieves relevant chunks, includes recent conversation history, calls the configured provider, and logs each question and answer.
 
 Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, and chunking settings.
+`AI_PROVIDER=fake` is the deterministic local default. Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to use the OpenAI provider.
