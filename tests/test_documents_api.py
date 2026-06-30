@@ -172,3 +172,45 @@ def test_list_documents_excludes_deleted_document(tmp_path):
     assert delete_response.status_code == 204
     assert list_response.status_code == 200
     assert list_response.json() == []
+
+
+def test_chat_returns_document_grounded_answer_and_logs_it(tmp_path):
+    client, app = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"FastAPI handles document uploads", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+
+    response = client.post(
+        "/api/chat",
+        json={"question": "How does FastAPI handle uploads?"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"].startswith("Fake answer")
+    assert body["insufficient_context"] is False
+    assert body["retrieved_chunk_ids"]
+    assert body["log_id"]
+    logs = app.state.qa_repository.list()
+    assert len(logs) == 1
+    assert logs[0].question == "How does FastAPI handle uploads?"
+    assert logs[0].answer == body["answer"]
+    assert logs[0].retrieved_chunk_ids == body["retrieved_chunk_ids"]
+    assert logs[0].insufficient_context is False
+
+
+def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):
+    client, app = make_client(tmp_path)
+
+    response = client.post("/api/chat", json={"question": "What is missing?"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["insufficient_context"] is True
+    assert "cannot answer" in body["answer"]
+    assert body["retrieved_chunk_ids"] == []
+    logs = app.state.qa_repository.list()
+    assert len(logs) == 1
+    assert logs[0].insufficient_context is True
