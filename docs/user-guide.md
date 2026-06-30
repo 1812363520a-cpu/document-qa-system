@@ -26,7 +26,7 @@ curl -X POST http://localhost:8000/api/documents/upload \
   -F "file=@README.md"
 ```
 
-Supported MVP formats are TXT and Markdown.
+Supported formats are TXT, Markdown, and PDF.
 
 ## List Documents
 

@@ -4,7 +4,7 @@ AI document question-answering system.
 
 ## What It Does
 
-This FastAPI backend uploads TXT and Markdown documents, stores source files and metadata, parses documents into chunks, indexes chunks for local retrieval, answers document-grounded questions, tracks conversation history, and supports configurable AI providers.
+This FastAPI backend uploads TXT, Markdown, and PDF documents, stores source files and metadata, parses documents into chunks, indexes chunks for local retrieval, answers document-grounded questions, tracks conversation history, and supports configurable AI providers.
 
 ## Quick Start With Docker
 

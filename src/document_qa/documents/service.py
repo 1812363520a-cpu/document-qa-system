@@ -27,6 +27,7 @@ SUPPORTED_EXTENSIONS = {
     ".txt": "txt",
     ".md": "markdown",
     ".markdown": "markdown",
+    ".pdf": "pdf",
 }
 
 
