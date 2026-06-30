@@ -1,110 +1,110 @@
-# Architecture Design
+# 架构设计
 
-This document describes the current architecture of the Document Q&A System. The system is a small RAG-style application: users upload documents, the backend parses and indexes them, and the chat endpoint answers questions using retrieved document context plus recent conversation history.
+本文档说明 Document Q&A System 当前的系统架构。这个项目是一个轻量级 RAG 文档问答应用：用户上传文档，后端解析并建立本地检索索引，聊天接口基于检索到的文档上下文和最近会话历史生成回答。
 
-## Goals
+## 设计目标
 
-- Provide a simple Web UI for uploading documents, managing documents, browsing conversations, and asking questions.
-- Support common document formats: `.txt`, `.md`, `.markdown`, `.pdf`, `.doc`, and `.docx`.
-- Keep the MVP easy to run with Docker and SQLite.
-- Allow different AI providers without changing API routes or UI code.
-- Persist uploaded files, parsed chunks, retrieval data, QA logs, and conversation history locally.
+- 提供一个简单的 Web UI，用于上传文档、管理文档、浏览会话和提问。
+- 支持常见文档格式：`.txt`、`.md`、`.markdown`、`.pdf`、`.doc`、`.docx`。
+- 使用 Docker 和 SQLite 保持本地启动成本低。
+- 支持切换不同 AI 服务提供方，并且不影响 API 路由和前端代码。
+- 本地持久化上传文件、解析后的文本块、检索数据、问答日志和会话历史。
 
-## High-Level Flow
+## 总体流程
 
 ```mermaid
 flowchart LR
-  User["User / Web UI"] --> API["FastAPI API"]
-  API --> Docs["Document Service"]
-  Docs --> Parser["Document Parser"]
-  Docs --> Chunker["Text Chunker"]
-  Docs --> DocRepo["SQLite Document Repository"]
-  Docs --> Store["SQLite Retrieval Store"]
-  API --> QA["QA Service"]
+  User["用户 / Web UI"] --> API["FastAPI API"]
+  API --> Docs["文档服务"]
+  Docs --> Parser["文档解析器"]
+  Docs --> Chunker["文本切块器"]
+  Docs --> DocRepo["SQLite 文档仓库"]
+  Docs --> Store["SQLite 检索存储"]
+  API --> QA["问答服务"]
   QA --> Store
-  QA --> ConvRepo["SQLite Conversation Repository"]
+  QA --> ConvRepo["SQLite 会话仓库"]
   QA --> Provider["AI Provider"]
-  QA --> LogRepo["SQLite QA Log Repository"]
+  QA --> LogRepo["SQLite 问答日志仓库"]
 ```
 
-## Runtime Components
+## 运行时组件
 
 ### Web UI
 
-The frontend is served from `src/document_qa/web/` by the same FastAPI process:
+前端文件位于 `src/document_qa/web/`，由同一个 FastAPI 进程提供静态资源：
 
-- `index.html`: application shell.
-- `app.js`: document upload/list/delete, conversation list loading, chat interaction, Markdown answer rendering, loading states, and tab switching.
-- `styles.css`: responsive workspace layout, document/conversation tabs, scrollable lists, and chat presentation.
+- `index.html`：页面结构。
+- `app.js`：文档上传、文档列表、删除文档、加载会话列表、聊天交互、Markdown 回答渲染、加载状态和 tab 切换。
+- `styles.css`：响应式工作区布局、文档/会话 tab、列表滚动和聊天样式。
 
-The UI calls the backend under the configured API prefix, `/api` by default.
+前端默认调用 `/api` 前缀下的后端接口。这个前缀可以通过 `API_PREFIX` 配置。
 
-### FastAPI Application
+### FastAPI 应用
 
-`src/document_qa/main.py` creates the app and wires dependencies into `app.state`:
+`src/document_qa/main.py` 创建应用，并把依赖挂载到 `app.state`：
 
-- Settings from `document_qa.core.config`.
-- SQLite repositories for documents, QA logs, and conversations.
-- SQLite retrieval store.
-- Document service.
-- QA service.
-- Configured AI provider.
+- 来自 `document_qa.core.config` 的配置。
+- 文档、问答日志、会话的 SQLite 仓库。
+- SQLite 检索存储。
+- 文档服务。
+- 问答服务。
+- 当前配置的 AI Provider。
 
-On startup, repositories are initialized and the retrieval store rebuilds from persisted chunks.
+应用启动时会初始化 SQLite 表，并从已持久化的文档 chunks 重建检索索引。
 
-### Document Ingestion
+### 文档摄取流程
 
-Document ingestion is handled by `DocumentService`:
+文档上传由 `DocumentService` 处理：
 
-1. Validate the file extension.
-2. Read the upload with `MAX_UPLOAD_BYTES + 1` to enforce size limits.
-3. Parse the document into plain text.
-4. Store the original source file under `STORAGE_DIR`.
-5. Split parsed text into overlapping chunks.
-6. Persist document metadata and chunks in SQLite.
-7. Upsert chunks into the retrieval store.
+1. 校验文件扩展名。
+2. 按 `MAX_UPLOAD_BYTES + 1` 读取上传内容，用于判断是否超过大小限制。
+3. 将文档解析为纯文本。
+4. 将原始文件保存到 `STORAGE_DIR`。
+5. 将解析文本切成带 overlap 的 chunks。
+6. 将文档元数据和 chunks 写入 SQLite。
+7. 将 chunks 写入检索存储。
 
-Supported extensions are:
+支持的文件类型：
 
-| Extension | Internal type | Parser behavior |
+| 扩展名 | 内部类型 | 解析方式 |
 | --- | --- | --- |
-| `.txt` | `txt` | UTF-8 text decode |
-| `.md`, `.markdown` | `markdown` | UTF-8 decode plus simple Markdown-to-text cleanup |
-| `.pdf` | `pdf` | Text extraction with `pypdf` |
-| `.docx` | `docx` | Paragraph/table extraction with `python-docx` |
-| `.doc` | `doc` | Legacy Word via `antiword`, plus fallbacks for renamed `.docx`, RTF, HTML/text-like files, and LibreOffice conversion when available |
+| `.txt` | `txt` | UTF-8 文本解码 |
+| `.md`, `.markdown` | `markdown` | UTF-8 解码，并做简单 Markdown 转纯文本处理 |
+| `.pdf` | `pdf` | 使用 `pypdf` 提取文本 |
+| `.docx` | `docx` | 使用 `python-docx` 提取段落和表格文本 |
+| `.doc` | `doc` | 优先使用 `antiword` 解析旧版 Word；同时支持重命名的 `.docx`、RTF、HTML/文本类文件，以及可用时的 LibreOffice 转换兜底 |
 
-### Retrieval
+### 检索
 
-The current retrieval store is SQLite-backed and local. It indexes parsed chunks and performs token-overlap search with a configurable minimum score:
+当前检索存储是本地 SQLite 实现。它索引解析后的文本块，并基于 token overlap 做相关性搜索：
 
-- `CHUNK_SIZE`: default `1000`.
-- `CHUNK_OVERLAP`: default `200`.
-- `RETRIEVAL_MIN_SCORE`: default `0.015`.
-- Retrieval limit in `QAService`: currently `5`.
+- `CHUNK_SIZE`：默认 `1000`。
+- `CHUNK_OVERLAP`：默认 `200`。
+- `RETRIEVAL_MIN_SCORE`：默认 `0.015`。
+- `QAService` 当前检索数量上限：`5`。
 
-This boundary is intentionally isolated in `document_qa.retrieval.vector_store`, so it can later be replaced by a vector database or embedding-backed search without changing API routes.
+检索边界集中在 `document_qa.retrieval.vector_store`。后续如果要替换成向量数据库或 embedding 检索，可以优先替换这一层，而不需要改 API 路由。
 
-### QA And Conversation Flow
+### 问答和会话流程
 
-The chat flow is handled by `QAService`:
+聊天问答由 `QAService` 处理：
 
-1. Normalize the question.
-2. Create or reuse a conversation.
-3. Load recent conversation messages.
-4. Retrieve relevant document chunks.
-5. If no question or no relevant chunks are available, return a friendly insufficient-context answer.
-6. Build a provider prompt from conversation history and document context.
-7. Call the configured AI provider.
-8. Persist the QA log.
-9. Append both user and assistant messages to the conversation.
-10. Return the answer, retrieved chunk ids, log id, and conversation id.
+1. 规范化用户问题。
+2. 创建新会话或复用已有会话。
+3. 加载最近的会话消息。
+4. 检索相关文档 chunks。
+5. 如果问题为空或没有检索到足够相关内容，返回“上下文不足”的友好提示。
+6. 基于会话历史和文档上下文组装 provider prompt。
+7. 调用当前配置的 AI Provider。
+8. 持久化问答日志。
+9. 将用户消息和 assistant 回答追加到会话。
+10. 返回回答、命中的 chunk id、日志 id 和会话 id。
 
-Conversation context is controlled by `CONVERSATION_HISTORY_LIMIT`, default `20`.
+会话上下文窗口由 `CONVERSATION_HISTORY_LIMIT` 控制，默认保留最近 `20` 条消息。
 
-### AI Provider Layer
+### AI Provider 层
 
-All providers implement a single interface:
+所有模型服务都实现同一个接口：
 
 ```python
 class AIProvider(Protocol):
@@ -112,75 +112,75 @@ class AIProvider(Protocol):
         ...
 ```
 
-Supported `AI_PROVIDER` values:
+支持的 `AI_PROVIDER`：
 
-| Provider | Value | Required settings |
+| 服务 | 配置值 | 必要配置 |
 | --- | --- | --- |
-| Fake deterministic provider | `fake` | None |
-| OpenAI | `openai` | `OPENAI_API_KEY`, optional `OPENAI_MODEL` |
-| DeepSeek | `deepseek` | `DEEPSEEK_API_KEY`, optional `DEEPSEEK_MODEL`, `DEEPSEEK_BASE_URL` |
-| OpenAI-compatible endpoint | `openai_compatible`, `openai-compatible` | `OPENAI_COMPATIBLE_BASE_URL`, optional key/model |
-| Anthropic Claude | `anthropic`, `claude` | `ANTHROPIC_API_KEY`, optional model/base URL |
-| Ollama/local | `ollama`, `local` | `OLLAMA_MODEL`, `OLLAMA_BASE_URL` |
+| 本地假数据 provider | `fake` | 无 |
+| OpenAI | `openai` | `OPENAI_API_KEY`，可选 `OPENAI_MODEL` |
+| DeepSeek | `deepseek` | `DEEPSEEK_API_KEY`，可选 `DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL` |
+| OpenAI-compatible 服务 | `openai_compatible`, `openai-compatible` | `OPENAI_COMPATIBLE_BASE_URL`，可选 key/model |
+| Anthropic Claude | `anthropic`, `claude` | `ANTHROPIC_API_KEY`，可选 model/base URL |
+| Ollama/本地模型 | `ollama`, `local` | `OLLAMA_MODEL`、`OLLAMA_BASE_URL` |
 
-Provider failures are converted to `AIProviderError` and returned by the chat route as `503 Service Unavailable`.
+Provider 调用失败会转换成 `AIProviderError`，聊天接口会返回 `503 Service Unavailable`。
 
-## Persistence Design
+## 持久化设计
 
-SQLite is the only database in the current implementation. The configured path is `DATABASE_PATH`, default `.data/document_qa.sqlite3`.
+当前实现只使用 SQLite。数据库路径由 `DATABASE_PATH` 配置，默认是 `.data/document_qa.sqlite3`。
 
-Persisted data includes:
+持久化的数据包括：
 
-- Document metadata.
-- Parsed document chunks.
-- Retrieval index rows.
-- QA logs.
-- Conversation summaries.
-- Ordered conversation messages.
+- 文档元数据。
+- 解析后的文档 chunks。
+- 检索索引数据。
+- 问答日志。
+- 会话摘要。
+- 按顺序保存的会话消息。
 
-Uploaded source files are stored separately under `STORAGE_DIR`, default `.data/uploads`.
+上传的原始文件单独保存在 `STORAGE_DIR`，默认是 `.data/uploads`。
 
-Deleting a document removes:
+删除文档会移除：
 
-- Document metadata.
-- Persisted chunks.
-- Retrieval index entries.
-- Stored source file.
+- 文档元数据。
+- 持久化 chunks。
+- 检索索引条目。
+- 原始上传文件。
 
-It does not delete historical conversation messages that may have referenced previous answers.
+删除文档不会删除历史会话消息。历史会话里曾经回答过的内容会继续保留。
 
-## Configuration
+## 配置
 
-Configuration is environment-driven. See `.env.example` for defaults.
+系统通过环境变量配置。完整默认值见 `.env.example`。
 
-Important settings:
+关键配置：
 
-| Variable | Default | Purpose |
+| 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `APP_ENV` | `local` | Environment label returned by health checks |
-| `API_PREFIX` | `/api` | API route prefix |
-| `STORAGE_DIR` | `.data/uploads` | Uploaded source file location |
-| `DATABASE_PATH` | `.data/document_qa.sqlite3` | SQLite database path |
-| `MAX_UPLOAD_BYTES` | `20971520` | Upload size limit, 20 MB by default |
-| `CHUNK_SIZE` | `1000` | Text chunk size |
-| `CHUNK_OVERLAP` | `200` | Chunk overlap |
-| `RETRIEVAL_MIN_SCORE` | `0.015` | Minimum retrieval score |
-| `CONVERSATION_HISTORY_LIMIT` | `20` | Number of recent messages sent as context |
-| `AI_PROVIDER` | `fake` | Active model provider |
-| `AI_REQUEST_TIMEOUT_SECONDS` | `30` | Provider request timeout |
+| `APP_ENV` | `local` | 环境标识，健康检查会返回 |
+| `API_PREFIX` | `/api` | API 路由前缀 |
+| `STORAGE_DIR` | `.data/uploads` | 上传原始文件保存目录 |
+| `DATABASE_PATH` | `.data/document_qa.sqlite3` | SQLite 数据库路径 |
+| `MAX_UPLOAD_BYTES` | `20971520` | 上传大小限制，默认 20 MB |
+| `CHUNK_SIZE` | `1000` | 文本块大小 |
+| `CHUNK_OVERLAP` | `200` | 文本块 overlap |
+| `RETRIEVAL_MIN_SCORE` | `0.015` | 检索最小相关性分数 |
+| `CONVERSATION_HISTORY_LIMIT` | `20` | 发送给模型的最近会话消息数量 |
+| `AI_PROVIDER` | `fake` | 当前启用的模型服务 |
+| `AI_REQUEST_TIMEOUT_SECONDS` | `30` | 模型服务请求超时时间 |
 
-## Deployment Shape
+## 部署形态
 
-The simplest deployment is Docker Compose:
+最简单的启动方式是 Docker Compose：
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-The FastAPI service exposes both:
+FastAPI 服务同时提供：
 
-- Web UI: `http://localhost:8000/`
-- API: `http://localhost:8000/api/...`
+- Web UI：`http://localhost:8000/`
+- API：`http://localhost:8000/api/...`
 
-The application is designed for local/small-team use. For production usage, the next likely changes are authentication, rate limits, background ingestion jobs, a real vector index, object storage for uploads, and database migrations.
+当前系统更适合本地或小团队使用。如果要用于生产环境，优先需要补充认证、限流、后台异步摄取任务、真正的向量索引、对象存储和数据库迁移能力。

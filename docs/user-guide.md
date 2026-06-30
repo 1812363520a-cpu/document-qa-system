@@ -1,54 +1,54 @@
-# User Guide
+# 用户使用文档
 
-This guide explains how to run the Document Q&A System, upload documents, ask questions, manage conversations, and configure AI providers.
+本文档说明如何运行 Document Q&A System、上传文档、提问、管理会话，以及配置不同 AI 服务提供方。
 
-## Quick Start
+## 快速开始
 
-Clone the repository:
+克隆仓库：
 
 ```bash
 git clone https://github.com/1812363520a-cpu/document-qa-system.git
 cd document-qa-system
 ```
 
-Create a local environment file:
+创建本地环境变量文件：
 
 ```bash
 cp .env.example .env
 ```
 
-Start with Docker:
+使用 Docker 启动：
 
 ```bash
 docker compose up --build
 ```
 
-Open the Web UI:
+打开 Web UI：
 
 ```text
 http://localhost:8000/
 ```
 
-Stop the service:
+停止服务：
 
 ```bash
 docker compose down
 ```
 
-## Web UI
+## Web UI 使用说明
 
-The Web UI is the main way to use the system.
+Web UI 是当前最主要的使用入口。
 
-### Documents Tab
+### Docs 文档 tab
 
-Use the `Docs` tab to:
+在 `Docs` tab 中可以：
 
-- Upload supported documents.
-- Refresh the document list.
-- Search uploaded files by filename.
-- Delete a document after confirming the delete prompt.
+- 上传支持的文档。
+- 刷新文档列表。
+- 按文件名搜索已上传文档。
+- 删除文档。删除前会有二次确认。
 
-Supported formats:
+支持格式：
 
 - `.txt`
 - `.md`
@@ -57,89 +57,89 @@ Supported formats:
 - `.doc`
 - `.docx`
 
-The default upload limit is 20 MB. Change `MAX_UPLOAD_BYTES` in `.env` if you need a different limit.
+默认上传大小限制是 20 MB。如果需要调整，可以修改 `.env` 中的 `MAX_UPLOAD_BYTES`。
 
-### Chats Tab
+### Chats 会话 tab
 
-Use the `Chats` tab to:
+在 `Chats` tab 中可以：
 
-- Browse previous conversations.
-- Select a conversation and load its messages.
-- Continue asking follow-up questions in that conversation.
+- 浏览历史会话。
+- 点击某个会话并加载消息列表。
+- 在已有会话里继续追问。
 
-Conversation history is persisted in SQLite. The model receives recent conversation messages as context. The default history window is 20 messages and can be changed with `CONVERSATION_HISTORY_LIMIT`.
+会话历史会保存到 SQLite。模型回答时会带上最近的会话消息作为上下文。默认上下文窗口是最近 20 条消息，可以通过 `CONVERSATION_HISTORY_LIMIT` 修改。
 
-### Chat Panel
+### Chat 问答区域
 
-Use the chat panel to:
+在聊天区域可以：
 
-- Start a new conversation.
-- Ask questions about uploaded documents.
-- See your question immediately while the assistant answer is loading.
-- Read assistant answers rendered as Markdown.
+- 创建新会话。
+- 针对已上传文档提问。
+- 发送后立即看到用户问题，assistant 回答加载期间会显示思考状态。
+- 阅读 Markdown 渲染后的 assistant 回答。
 
-If the system cannot find relevant document context, it returns a friendly message asking you to upload or select more relevant material, or to ask a more specific question.
+如果系统没有找到足够相关的文档上下文，会返回提示，建议你上传相关文档、换更具体的问法，或检查文档是否解析成功。
 
-## API Examples
+## API 使用示例
 
-Health check:
+健康检查：
 
 ```bash
 curl http://localhost:8000/api/health
 ```
 
-Upload a document:
+上传文档：
 
 ```bash
 curl -X POST http://localhost:8000/api/documents/upload \
   -F "file=@README.md"
 ```
 
-List uploaded documents:
+查看文档列表：
 
 ```bash
 curl http://localhost:8000/api/documents
 ```
 
-Ask a question:
+提问：
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"question":"What is this project about?"}'
+  -d '{"question":"这个项目是做什么的？"}'
 ```
 
-Continue a conversation:
+在已有会话里继续追问：
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"question":"Can you explain that in more detail?","conversation_id":"PASTE_CONVERSATION_ID"}'
+  -d '{"question":"再详细解释一下","conversation_id":"PASTE_CONVERSATION_ID"}'
 ```
 
-List conversations:
+查看会话列表：
 
 ```bash
 curl http://localhost:8000/api/conversations
 ```
 
-Load conversation messages:
+加载某个会话的消息：
 
 ```bash
 curl http://localhost:8000/api/conversations/PASTE_CONVERSATION_ID/messages
 ```
 
-Delete a document:
+删除文档：
 
 ```bash
 curl -X DELETE http://localhost:8000/api/documents/PASTE_DOCUMENT_ID
 ```
 
-## AI Provider Configuration
+## AI Provider 配置
 
-By default the app uses `AI_PROVIDER=fake`. This is useful for local verification but does not call a real model.
+默认配置是 `AI_PROVIDER=fake`。它用于本地验证，不会真正调用大模型服务。
 
-After changing `.env`, restart Docker:
+修改 `.env` 后，需要重启 Docker：
 
 ```bash
 docker compose up --build
@@ -171,9 +171,9 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-latest
 ANTHROPIC_BASE_URL=https://api.anthropic.com
 ```
 
-### OpenAI-Compatible Provider
+### OpenAI-compatible 服务
 
-Use this for services that expose an OpenAI-compatible chat completions API.
+如果某个模型服务提供 OpenAI-compatible chat completions API，可以使用这个配置：
 
 ```env
 AI_PROVIDER=openai_compatible
@@ -182,16 +182,16 @@ OPENAI_COMPATIBLE_MODEL=your-model-name
 OPENAI_COMPATIBLE_BASE_URL=https://your-provider.example/v1
 ```
 
-### Ollama Or Local Model
+### Ollama 或本地模型
 
-Run Ollama on your machine:
+先在本机运行 Ollama：
 
 ```bash
 ollama serve
 ollama pull qwen2.5:7b
 ```
 
-Configure Docker to reach the host Ollama service:
+如果使用 Docker 启动项目，推荐这样配置，让容器访问宿主机上的 Ollama：
 
 ```env
 AI_PROVIDER=ollama
@@ -199,11 +199,15 @@ OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
-For local non-Docker development, `OLLAMA_BASE_URL=http://localhost:11434` is usually correct.
+如果是非 Docker 的本地开发，通常可以使用：
 
-## Local Development
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+```
 
-Create and activate a virtual environment:
+## 本地开发
+
+创建并激活虚拟环境：
 
 ```bash
 python3 -m venv .venv
@@ -211,58 +215,58 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-Run tests:
+运行测试：
 
 ```bash
 pytest
 ```
 
-Start the API locally:
+本地启动 API：
 
 ```bash
 uvicorn document_qa.main:app --reload
 ```
 
-Then open:
+然后打开：
 
 ```text
 http://localhost:8000/
 ```
 
-## Troubleshooting
+## 常见问题
 
-### `docker compose up --build` says no configuration file found
+### `docker compose up --build` 提示找不到配置文件
 
-Run the command from the project root, the directory containing `docker-compose.yml`.
+请确认你是在项目根目录执行命令，也就是包含 `docker-compose.yml` 的目录。
 
-### Upload returns `400 Bad Request`
+### 上传返回 `400 Bad Request`
 
-Common causes:
+常见原因：
 
-- Unsupported file extension.
-- The document cannot be parsed.
-- A PDF has no extractable text.
-- A Word file is encrypted, corrupted, or not readable by the available parser.
+- 文件扩展名不支持。
+- 文档内容无法解析。
+- PDF 没有可提取的文本。
+- Word 文件被加密、损坏，或者当前解析器无法读取。
 
-### Upload returns `413 Request Entity Too Large`
+### 上传返回 `413 Request Entity Too Large`
 
-The file exceeds `MAX_UPLOAD_BYTES`. Increase the value in `.env` and restart the app.
+文件超过了 `MAX_UPLOAD_BYTES`。可以在 `.env` 中增大这个值，然后重启应用。
 
-### Chat returns insufficient context
+### 问答返回上下文不足
 
-The retrieval layer did not find chunks above `RETRIEVAL_MIN_SCORE`. Try:
+说明检索层没有找到超过 `RETRIEVAL_MIN_SCORE` 的相关文本块。可以尝试：
 
-- Uploading the relevant document.
-- Asking with more specific keywords from the document.
-- Lowering `RETRIEVAL_MIN_SCORE` slightly.
-- Confirming the upload succeeded and the file appears in the document list.
+- 上传包含答案的相关文档。
+- 用文档里的关键词提出更具体的问题。
+- 适当调低 `RETRIEVAL_MIN_SCORE`。
+- 确认文档上传成功，并且出现在文档列表中。
 
-### Chat returns `503 Service Unavailable`
+### 问答返回 `503 Service Unavailable`
 
-The AI provider request failed. Check:
+说明 AI Provider 调用失败。请检查：
 
-- API key is configured.
-- Model name is valid.
-- Base URL is correct.
-- Local model service is running.
-- Network access is available from the Docker container.
+- API key 是否配置。
+- model 名称是否正确。
+- base URL 是否正确。
+- 本地模型服务是否已经运行。
+- Docker 容器是否能访问对应服务。

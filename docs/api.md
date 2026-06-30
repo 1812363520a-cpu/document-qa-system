@@ -1,16 +1,16 @@
-# API Reference
+# 接口文档
 
-The default API prefix is `/api`. Change it with `API_PREFIX`.
+默认 API 前缀是 `/api`，可以通过 `API_PREFIX` 修改。
 
-Base URL in local Docker development:
+本地 Docker 开发时的 base URL：
 
 ```text
 http://localhost:8000
 ```
 
-## Error Format
+## 错误格式
 
-FastAPI returns errors with a `detail` field:
+FastAPI 默认返回包含 `detail` 字段的错误：
 
 ```json
 {
@@ -18,25 +18,25 @@ FastAPI returns errors with a `detail` field:
 }
 ```
 
-Common status codes:
+常见状态码：
 
-| Status | Meaning |
+| 状态码 | 含义 |
 | --- | --- |
-| `400` | Unsupported or unparseable document |
-| `404` | Document not found |
-| `413` | Uploaded file exceeds `MAX_UPLOAD_BYTES` |
-| `422` | Invalid request body or missing required field |
-| `503` | AI provider request failed |
+| `400` | 文档格式不支持，或文档无法解析 |
+| `404` | 文档不存在 |
+| `413` | 上传文件超过 `MAX_UPLOAD_BYTES` |
+| `422` | 请求体不合法，或缺少必要字段 |
+| `503` | AI Provider 调用失败 |
 
-## Health
+## 健康检查
 
 ```http
 GET /api/health
 ```
 
-Returns service status, service name, and environment.
+返回服务状态、服务名和当前环境。
 
-Example response:
+响应示例：
 
 ```json
 {
@@ -46,27 +46,27 @@ Example response:
 }
 ```
 
-## Upload Document
+## 上传文档
 
 ```http
 POST /api/documents/upload
 Content-Type: multipart/form-data
 ```
 
-Form fields:
+表单字段：
 
-| Field | Type | Required | Description |
+| 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `file` | file | Yes | `.txt`, `.md`, `.markdown`, `.pdf`, `.doc`, or `.docx` file |
+| `file` | file | 是 | `.txt`、`.md`、`.markdown`、`.pdf`、`.doc`、`.docx` 文件 |
 
-Example:
+请求示例：
 
 ```bash
 curl -X POST http://localhost:8000/api/documents/upload \
   -F "file=@README.md"
 ```
 
-Success response: `201 Created`
+成功响应：`201 Created`
 
 ```json
 {
@@ -78,25 +78,25 @@ Success response: `201 Created`
 }
 ```
 
-Possible errors:
+可能的错误：
 
-- `400`: unsupported file type or parse failure.
-- `413`: file exceeds upload limit.
-- `422`: missing `file` field.
+- `400`：文件类型不支持，或解析失败。
+- `413`：文件超过上传大小限制。
+- `422`：缺少 `file` 字段。
 
-## List Documents
+## 查看文档列表
 
 ```http
 GET /api/documents
 ```
 
-Example:
+请求示例：
 
 ```bash
 curl http://localhost:8000/api/documents
 ```
 
-Success response: `200 OK`
+成功响应：`200 OK`
 
 ```json
 [
@@ -110,57 +110,57 @@ Success response: `200 OK`
 ]
 ```
 
-## Delete Document
+## 删除文档
 
 ```http
 DELETE /api/documents/{document_id}
 ```
 
-Example:
+请求示例：
 
 ```bash
 curl -X DELETE http://localhost:8000/api/documents/a-document-id
 ```
 
-Success response: `204 No Content`
+成功响应：`204 No Content`
 
-Possible errors:
+可能的错误：
 
-- `404`: document id does not exist.
+- `404`：文档 id 不存在。
 
-Deletion removes the uploaded source file, document metadata, parsed chunks, and retrieval index entries.
+删除文档会移除原始上传文件、文档元数据、解析后的 chunks 和检索索引条目。
 
-## Ask A Question
+## 提问
 
 ```http
 POST /api/chat
 Content-Type: application/json
 ```
 
-Request body:
+请求体：
 
-| Field | Type | Required | Description |
+| 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `question` | string | Yes | User question |
-| `conversation_id` | string | No | Existing conversation id for follow-up questions |
+| `question` | string | 是 | 用户问题 |
+| `conversation_id` | string | 否 | 已有会话 id，用于继续追问 |
 
-Example new conversation:
-
-```bash
-curl -X POST http://localhost:8000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"What is this project about?"}'
-```
-
-Example follow-up:
+新会话请求示例：
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"question":"Summarize the key points again.","conversation_id":"a-conversation-id"}'
+  -d '{"question":"这个项目是做什么的？"}'
 ```
 
-Success response: `200 OK`
+继续会话请求示例：
+
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"总结一下重点","conversation_id":"a-conversation-id"}'
+```
+
+成功响应：`200 OK`
 
 ```json
 {
@@ -172,7 +172,7 @@ Success response: `200 OK`
 }
 ```
 
-Insufficient context response:
+上下文不足响应示例：
 
 ```json
 {
@@ -184,24 +184,24 @@ Insufficient context response:
 }
 ```
 
-Possible errors:
+可能的错误：
 
-- `422`: missing or invalid `question`.
-- `503`: configured AI provider failed.
+- `422`：缺少 `question`，或请求体不合法。
+- `503`：当前配置的 AI Provider 调用失败。
 
-## List Conversations
+## 查看会话列表
 
 ```http
 GET /api/conversations
 ```
 
-Example:
+请求示例：
 
 ```bash
 curl http://localhost:8000/api/conversations
 ```
 
-Success response: `200 OK`
+成功响应：`200 OK`
 
 ```json
 [
@@ -210,26 +210,26 @@ Success response: `200 OK`
     "created_at": "2026-06-30T13:00:00+00:00",
     "last_message_at": "2026-06-30T13:01:00+00:00",
     "message_count": 2,
-    "preview": "What is this project about?"
+    "preview": "这个项目是做什么的？"
   }
 ]
 ```
 
-The `preview` field is derived from the first message in the conversation.
+`preview` 来自该会话的第一条消息。
 
-## List Conversation Messages
+## 查看会话消息
 
 ```http
 GET /api/conversations/{conversation_id}/messages
 ```
 
-Example:
+请求示例：
 
 ```bash
 curl http://localhost:8000/api/conversations/a-conversation-id/messages
 ```
 
-Success response: `200 OK`
+成功响应：`200 OK`
 
 ```json
 [
@@ -237,7 +237,7 @@ Success response: `200 OK`
     "id": "a-message-id",
     "conversation_id": "a-conversation-id",
     "role": "user",
-    "content": "What is this project about?",
+    "content": "这个项目是做什么的？",
     "created_at": "2026-06-30T13:00:00+00:00",
     "sequence": 0
   },
@@ -252,11 +252,11 @@ Success response: `200 OK`
 ]
 ```
 
-If the conversation id does not exist, the current implementation returns an empty list.
+如果会话 id 不存在，当前实现会返回空数组。
 
-## OpenAPI Schema
+## OpenAPI 文档
 
-FastAPI also exposes generated API docs while the app is running:
+应用运行后，FastAPI 会自动提供 OpenAPI 文档：
 
 ```text
 http://localhost:8000/docs
