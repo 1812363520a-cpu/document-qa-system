@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from pathlib import Path
 from typing import Optional
+
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from document_qa.api.routes.chat import router as chat_router
 from document_qa.api.routes.conversations import router as conversations_router
@@ -13,6 +17,8 @@ from document_qa.persistence.qa_logs import SQLiteQARepository
 from document_qa.qa.provider import build_ai_provider
 from document_qa.qa.service import QAService
 from document_qa.retrieval.vector_store import SQLiteVectorStore
+
+WEB_DIR = Path(__file__).resolve().parent / "web"
 
 
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
@@ -45,6 +51,11 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.include_router(documents_router, prefix=app_settings.api_prefix)
     app.include_router(chat_router, prefix=app_settings.api_prefix)
     app.include_router(conversations_router, prefix=app_settings.api_prefix)
+    app.mount("/assets", StaticFiles(directory=WEB_DIR), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    def web_ui() -> FileResponse:
+        return FileResponse(WEB_DIR / "index.html")
 
     return app
 

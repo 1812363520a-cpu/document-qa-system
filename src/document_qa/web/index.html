@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Document Q&A</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="Document Q&A workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Document Q&A</p>
+            <h1>Knowledge workspace</h1>
+          </div>
+          <div class="status-pill" id="apiStatus">Checking API</div>
+        </header>
+
+        <div class="layout-grid">
+          <aside class="documents-panel" aria-label="Documents">
+            <div class="panel-header">
+              <h2>Documents</h2>
+              <button class="icon-button" id="refreshDocuments" type="button" title="Refresh documents" aria-label="Refresh documents">
+                <span aria-hidden="true">↻</span>
+              </button>
+            </div>
+
+            <form class="upload-form" id="uploadForm">
+              <label class="file-drop" for="documentFile">
+                <span class="file-icon" aria-hidden="true">+</span>
+                <span id="fileLabel">Choose file</span>
+              </label>
+              <input id="documentFile" name="file" type="file" accept=".txt,.md,.markdown,.pdf,.docx" />
+              <button class="primary-button" type="submit">Upload</button>
+            </form>
+
+            <div class="message" id="documentMessage" role="status"></div>
+            <ul class="document-list" id="documentList" aria-label="Uploaded documents"></ul>
+          </aside>
+
+          <section class="chat-panel" aria-label="Chat">
+            <div class="panel-header">
+              <h2>Chat</h2>
+              <button class="secondary-button" id="newConversation" type="button">New conversation</button>
+            </div>
+
+            <div class="conversation" id="conversation" aria-live="polite"></div>
+
+            <form class="chat-form" id="chatForm">
+              <textarea id="questionInput" rows="3" placeholder="Ask a question" required></textarea>
+              <button class="primary-button" type="submit">Send</button>
+            </form>
+            <div class="message" id="chatMessage" role="status"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>

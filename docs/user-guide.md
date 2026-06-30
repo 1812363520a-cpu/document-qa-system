@@ -19,6 +19,10 @@ uvicorn document_qa.main:app --reload
 
 The API listens on `http://localhost:8000` by default.
 
+## Use The Web UI
+
+Open `http://localhost:8000/` after starting the app. The page lets you upload supported documents, refresh or delete the document list, start a new conversation, and ask document-grounded questions.
+
 ## Upload A Document
 
 ```bash

@@ -18,6 +18,12 @@ Check the API:
 curl http://localhost:8000/api/health
 ```
 
+Open the Web UI:
+
+```text
+http://localhost:8000/
+```
+
 ## Local Development
 
 Create a virtual environment and install the project with development dependencies:
@@ -39,6 +45,8 @@ Start the API locally:
 ```bash
 uvicorn document_qa.main:app --reload
 ```
+
+Then open `http://localhost:8000/` to use the Web UI for uploading documents, managing the document list, and asking questions.
 
 ## Configuration
 
