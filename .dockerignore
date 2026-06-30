@@ -1,4 +1,5 @@
 .DS_Store
+.env
 .data/
 .git/
 .pytest_cache/
