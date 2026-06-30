@@ -15,7 +15,7 @@ class Settings:
     max_upload_bytes: int = 20 * 1024 * 1024
     chunk_size: int = 1000
     chunk_overlap: int = 200
-    retrieval_min_score: float = 0.1
+    retrieval_min_score: float = 0.015
     ai_provider: str = "fake"
     ai_request_timeout_seconds: float = 30.0
     openai_api_key: Optional[str] = None

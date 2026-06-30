@@ -32,7 +32,7 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.max_upload_bytes == 20 * 1024 * 1024
     assert settings.chunk_size == 1000
     assert settings.chunk_overlap == 200
-    assert settings.retrieval_min_score == 0.1
+    assert settings.retrieval_min_score == 0.015
     assert settings.ai_provider == "fake"
     assert settings.ai_request_timeout_seconds == 30.0
     assert settings.openai_api_key is None

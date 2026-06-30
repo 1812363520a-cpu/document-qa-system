@@ -23,7 +23,7 @@ class QAService:
         repository: QARepository,
         conversation_repository: ConversationRepository,
         retrieval_limit: int = 5,
-        retrieval_min_score: float = 0.1,
+        retrieval_min_score: float = 0.015,
         history_limit: int = 6,
     ) -> None:
         self.vector_store = vector_store

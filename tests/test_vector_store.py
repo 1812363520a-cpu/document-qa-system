@@ -60,6 +60,26 @@ def test_vector_store_indexes_and_searches_chinese_chunks(tmp_path):
     assert results[0].chunk.id == "doc-1:0"
 
 
+def test_vector_store_does_not_match_chinese_single_character_overlap(tmp_path):
+    store = make_store(tmp_path)
+    store.upsert(
+        [
+            DocumentChunk(
+                id="doc-1:0",
+                document_id="doc-1",
+                chunk_index=0,
+                content="瀑布模型适合需求明确的项目。",
+                start_char=0,
+                end_char=14,
+            )
+        ]
+    )
+
+    results = store.search("火星农业")
+
+    assert results == []
+
+
 def test_vector_store_rebuilds_index_from_persisted_document_chunks(tmp_path):
     store = make_store(tmp_path)
     with store._connect() as connection:

@@ -170,7 +170,7 @@ def _tokenize(text: str) -> set[str]:
     tokens = {token.lower() for token in re.findall(r"[a-zA-Z0-9]+", text)}
     chinese_runs = re.findall(r"[\u4e00-\u9fff]+", text)
     for run in chinese_runs:
-        tokens.update(_character_ngrams(run, min_size=1, max_size=4))
+        tokens.update(_character_ngrams(run, min_size=2, max_size=4))
     return tokens
 
 

@@ -158,6 +158,33 @@ def test_qa_service_returns_insufficient_context_for_low_score_results():
     assert repository.logs[0].retrieved_chunk_ids == []
 
 
+def test_qa_service_keeps_moderate_score_results_by_default():
+    chunk = DocumentChunk(
+        id="doc-1:0",
+        document_id="doc-1",
+        chunk_index=0,
+        content="瀑布模型：优点是容易理解，管理成本低。",
+        start_char=0,
+        end_char=21,
+    )
+    vector_store = RecordingVectorStore([SearchResult(chunk=chunk, score=0.08)])
+    provider = RecordingProvider()
+    repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
+    service = QAService(
+        vector_store=vector_store,
+        provider=provider,
+        repository=repository,
+        conversation_repository=conversation_repository,
+    )
+
+    response = service.answer_question("瀑布模型的优点")
+
+    assert len(provider.prompts) == 1
+    assert response.insufficient_context is False
+    assert response.retrieved_chunk_ids == ["doc-1:0"]
+
+
 def test_qa_service_filters_low_score_results_from_prompt():
     low_score_chunk = DocumentChunk(
         id="doc-1:0",
