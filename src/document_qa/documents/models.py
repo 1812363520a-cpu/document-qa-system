@@ -18,3 +18,13 @@ class DocumentMetadata:
             "uploaded_at": self.uploaded_at,
             "size_bytes": self.size_bytes,
         }
+
+
+@dataclass(frozen=True)
+class DocumentChunk:
+    id: str
+    document_id: str
+    chunk_index: int
+    content: str
+    start_char: int
+    end_char: int

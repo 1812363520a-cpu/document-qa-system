@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import sqlite3
 from pathlib import Path
 from typing import Protocol
 
-from document_qa.documents.models import DocumentMetadata
+from document_qa.documents.models import DocumentChunk, DocumentMetadata
 
 
 class DocumentRepository(Protocol):
-    def add(self, document: DocumentMetadata) -> None:
+    def add(self, document: DocumentMetadata, chunks: list[DocumentChunk]) -> None:
         ...
 
     def list(self) -> list[DocumentMetadata]:
+        ...
+
+    def list_chunks(self, document_id: str) -> list[DocumentChunk]:
         ...
 
 
@@ -33,8 +38,27 @@ class SQLiteDocumentRepository:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id TEXT PRIMARY KEY,
+                    document_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    start_char INTEGER NOT NULL,
+                    end_char INTEGER NOT NULL,
+                    FOREIGN KEY(document_id) REFERENCES documents(id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id
+                ON document_chunks(document_id)
+                """
+            )
 
-    def add(self, document: DocumentMetadata) -> None:
+    def add(self, document: DocumentMetadata, chunks: list[DocumentChunk]) -> None:
         with self._connect() as connection:
             connection.execute(
                 """
@@ -57,6 +81,30 @@ class SQLiteDocumentRepository:
                     document.storage_path,
                 ),
             )
+            connection.executemany(
+                """
+                INSERT INTO document_chunks (
+                    id,
+                    document_id,
+                    chunk_index,
+                    content,
+                    start_char,
+                    end_char
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        chunk.id,
+                        chunk.document_id,
+                        chunk.chunk_index,
+                        chunk.content,
+                        chunk.start_char,
+                        chunk.end_char,
+                    )
+                    for chunk in chunks
+                ],
+            )
 
     def list(self) -> list[DocumentMetadata]:
         with self._connect() as connection:
@@ -76,6 +124,30 @@ class SQLiteDocumentRepository:
                 uploaded_at=row["uploaded_at"],
                 size_bytes=row["size_bytes"],
                 storage_path=row["storage_path"],
+            )
+            for row in rows
+        ]
+
+    def list_chunks(self, document_id: str) -> list[DocumentChunk]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, document_id, chunk_index, content, start_char, end_char
+                FROM document_chunks
+                WHERE document_id = ?
+                ORDER BY chunk_index ASC
+                """,
+                (document_id,),
+            ).fetchall()
+
+        return [
+            DocumentChunk(
+                id=row["id"],
+                document_id=row["document_id"],
+                chunk_index=row["chunk_index"],
+                content=row["content"],
+                start_char=row["start_char"],
+                end_char=row["end_char"],
             )
             for row in rows
         ]

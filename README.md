@@ -37,4 +37,6 @@ POST /api/documents/upload
 GET /api/documents
 ```
 
-Configuration is loaded from environment variables. See `.env.example` for the current local defaults.
+Uploaded TXT and Markdown documents are parsed into plain text and split into persisted chunks during ingestion.
+
+Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, and chunking settings.

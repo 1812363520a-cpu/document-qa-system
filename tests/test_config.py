@@ -8,6 +8,8 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("LOG_LEVEL", raising=False)
     monkeypatch.delenv("STORAGE_DIR", raising=False)
     monkeypatch.delenv("DATABASE_PATH", raising=False)
+    monkeypatch.delenv("CHUNK_SIZE", raising=False)
+    monkeypatch.delenv("CHUNK_OVERLAP", raising=False)
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -18,6 +20,8 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.log_level == "INFO"
     assert settings.storage_dir == ".data/uploads"
     assert settings.database_path == ".data/document_qa.sqlite3"
+    assert settings.chunk_size == 1000
+    assert settings.chunk_overlap == 200
 
 
 def test_settings_load_environment_overrides(monkeypatch):
@@ -27,6 +31,8 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("STORAGE_DIR", "/tmp/uploads")
     monkeypatch.setenv("DATABASE_PATH", "/tmp/document_qa.sqlite3")
+    monkeypatch.setenv("CHUNK_SIZE", "256")
+    monkeypatch.setenv("CHUNK_OVERLAP", "32")
     get_settings.cache_clear()
 
     settings = get_settings()
@@ -37,3 +43,5 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.log_level == "DEBUG"
     assert settings.storage_dir == "/tmp/uploads"
     assert settings.database_path == "/tmp/document_qa.sqlite3"
+    assert settings.chunk_size == 256
+    assert settings.chunk_overlap == 32

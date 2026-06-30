@@ -11,6 +11,8 @@ class Settings:
     log_level: str = "INFO"
     storage_dir: str = ".data/uploads"
     database_path: str = ".data/document_qa.sqlite3"
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
 
 
 def _normalized_api_prefix(value: str) -> str:
@@ -29,4 +31,6 @@ def get_settings() -> Settings:
         log_level=os.getenv("LOG_LEVEL", Settings.log_level),
         storage_dir=os.getenv("STORAGE_DIR", Settings.storage_dir),
         database_path=os.getenv("DATABASE_PATH", Settings.database_path),
+        chunk_size=int(os.getenv("CHUNK_SIZE", Settings.chunk_size)),
+        chunk_overlap=int(os.getenv("CHUNK_OVERLAP", Settings.chunk_overlap)),
     )

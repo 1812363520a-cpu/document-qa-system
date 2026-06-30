@@ -18,6 +18,8 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.state.document_service = DocumentService(
         repository=app.state.document_repository,
         storage_dir=app_settings.storage_dir,
+        chunk_size=app_settings.chunk_size,
+        chunk_overlap=app_settings.chunk_overlap,
     )
     app.include_router(health_router, prefix=app_settings.api_prefix)
     app.include_router(documents_router, prefix=app_settings.api_prefix)

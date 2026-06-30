@@ -55,6 +55,24 @@ def test_upload_markdown_document(tmp_path):
     assert body["size_bytes"] == len(b"# Title\n\nBody")
 
 
+def test_upload_persists_parsed_chunks(tmp_path):
+    client, app = make_client(tmp_path)
+
+    response = client.post(
+        "/api/documents/upload",
+        files={"file": ("readme.md", b"# Title\n\nSearchable **body**", "text/markdown")},
+    )
+
+    assert response.status_code == 201
+    document_id = response.json()["id"]
+    chunks = app.state.document_repository.list_chunks(document_id)
+    assert len(chunks) == 1
+    assert chunks[0].document_id == document_id
+    assert chunks[0].chunk_index == 0
+    assert "Title" in chunks[0].content
+    assert "Searchable body" in chunks[0].content
+
+
 def test_upload_unsupported_document_type_returns_clear_error(tmp_path):
     client, _ = make_client(tmp_path)
 
