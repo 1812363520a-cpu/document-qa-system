@@ -73,6 +73,22 @@ def test_upload_persists_parsed_chunks(tmp_path):
     assert "Searchable body" in chunks[0].content
 
 
+def test_upload_indexes_chunks_for_search(tmp_path):
+    client, app = make_client(tmp_path)
+
+    response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"retrieval uses indexed chunks", "text/plain")},
+    )
+
+    assert response.status_code == 201
+    document_id = response.json()["id"]
+    results = app.state.vector_store.search("indexed retrieval")
+    assert len(results) == 1
+    assert results[0].chunk.document_id == document_id
+    assert results[0].chunk.content == "retrieval uses indexed chunks"
+
+
 def test_upload_unsupported_document_type_returns_clear_error(tmp_path):
     client, _ = make_client(tmp_path)
 

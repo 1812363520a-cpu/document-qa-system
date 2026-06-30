@@ -38,5 +38,6 @@ GET /api/documents
 ```
 
 Uploaded TXT and Markdown documents are parsed into plain text and split into persisted chunks during ingestion.
+Chunks are also indexed in the local SQLite-backed retrieval store for MVP search.
 
 Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, and chunking settings.

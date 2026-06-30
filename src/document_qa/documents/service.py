@@ -8,6 +8,7 @@ from document_qa.documents.chunking import TextChunker
 from document_qa.documents.models import DocumentMetadata
 from document_qa.documents.parser import DocumentParseError, DocumentParser
 from document_qa.persistence.documents import DocumentRepository
+from document_qa.retrieval.vector_store import VectorStore
 
 
 class UnsupportedDocumentTypeError(ValueError):
@@ -29,11 +30,13 @@ class DocumentService:
     def __init__(
         self,
         repository: DocumentRepository,
+        vector_store: VectorStore,
         storage_dir: str,
         chunk_size: int,
         chunk_overlap: int,
     ) -> None:
         self.repository = repository
+        self.vector_store = vector_store
         self.storage_dir = Path(storage_dir)
         self.parser = DocumentParser()
         self.chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -62,6 +65,7 @@ class DocumentService:
             storage_path=str(storage_path),
         )
         self.repository.add(document, chunks)
+        self.vector_store.upsert(chunks)
         return document
 
     def list_documents(self) -> list[DocumentMetadata]:
