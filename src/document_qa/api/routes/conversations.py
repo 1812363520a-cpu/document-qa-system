@@ -3,6 +3,12 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
+@router.get("")
+def list_conversations(request: Request) -> list[dict[str, object]]:
+    conversations = request.app.state.qa_service.list_conversations()
+    return [conversation.to_api_dict() for conversation in conversations]
+
+
 @router.get("/{conversation_id}/messages")
 def list_conversation_messages(
     request: Request,

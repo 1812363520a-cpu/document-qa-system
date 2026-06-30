@@ -513,3 +513,27 @@ def test_chat_reuses_conversation_for_follow_up_questions(tmp_path):
         "assistant",
     ]
     assert [message["sequence"] for message in messages] == [0, 1, 2, 3]
+
+
+def test_list_conversations_returns_saved_conversation_summaries(tmp_path):
+    client, _ = make_client(tmp_path)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"FastAPI handles document uploads", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+    first_response = client.post(
+        "/api/chat",
+        json={"question": "How does FastAPI handle uploads?"},
+    )
+    conversation_id = first_response.json()["conversation_id"]
+
+    response = client.get("/api/conversations")
+
+    assert response.status_code == 200
+    summaries = response.json()
+    assert len(summaries) == 1
+    assert summaries[0]["id"] == conversation_id
+    assert summaries[0]["preview"] == "How does FastAPI handle uploads?"
+    assert summaries[0]["message_count"] == 2
+    assert summaries[0]["last_message_at"]

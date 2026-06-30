@@ -16,6 +16,7 @@ class Settings:
     chunk_size: int = 1000
     chunk_overlap: int = 200
     retrieval_min_score: float = 0.015
+    conversation_history_limit: int = 20
     ai_provider: str = "fake"
     ai_request_timeout_seconds: float = 30.0
     openai_api_key: Optional[str] = None
@@ -54,6 +55,12 @@ def get_settings() -> Settings:
         chunk_overlap=int(os.getenv("CHUNK_OVERLAP", Settings.chunk_overlap)),
         retrieval_min_score=float(
             os.getenv("RETRIEVAL_MIN_SCORE", Settings.retrieval_min_score)
+        ),
+        conversation_history_limit=int(
+            os.getenv(
+                "CONVERSATION_HISTORY_LIMIT",
+                Settings.conversation_history_limit,
+            )
         ),
         ai_provider=os.getenv("AI_PROVIDER", Settings.ai_provider),
         ai_request_timeout_seconds=float(

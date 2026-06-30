@@ -31,6 +31,24 @@ class QAResponse:
 
 
 @dataclass(frozen=True)
+class ConversationSummary:
+    id: str
+    created_at: str
+    last_message_at: str
+    message_count: int
+    preview: str
+
+    def to_api_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "created_at": self.created_at,
+            "last_message_at": self.last_message_at,
+            "message_count": self.message_count,
+            "preview": self.preview,
+        }
+
+
+@dataclass(frozen=True)
 class ConversationMessage:
     id: str
     conversation_id: str

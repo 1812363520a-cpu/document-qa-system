@@ -19,24 +19,37 @@
 
         <div class="layout-grid">
           <aside class="documents-panel" aria-label="Documents">
-            <div class="panel-header">
-              <h2>Documents</h2>
-              <button class="icon-button" id="refreshDocuments" type="button" title="Refresh documents" aria-label="Refresh documents">
-                <span aria-hidden="true">↻</span>
-              </button>
+            <div class="sidebar-section documents-section">
+              <div class="panel-header">
+                <h2>Documents</h2>
+                <button class="icon-button" id="refreshDocuments" type="button" title="Refresh documents" aria-label="Refresh documents">
+                  <span aria-hidden="true">↻</span>
+                </button>
+              </div>
+
+              <form class="upload-form" id="uploadForm">
+                <label class="file-drop" for="documentFile">
+                  <span class="file-icon" aria-hidden="true">+</span>
+                  <span id="fileLabel">Choose file</span>
+                </label>
+                <input id="documentFile" name="file" type="file" accept=".txt,.md,.markdown,.pdf,.doc,.docx" />
+                <button class="primary-button" type="submit">Upload</button>
+              </form>
+
+              <div class="message" id="documentMessage" role="status"></div>
+              <ul class="document-list" id="documentList" aria-label="Uploaded documents"></ul>
             </div>
 
-            <form class="upload-form" id="uploadForm">
-              <label class="file-drop" for="documentFile">
-                <span class="file-icon" aria-hidden="true">+</span>
-                <span id="fileLabel">Choose file</span>
-              </label>
-              <input id="documentFile" name="file" type="file" accept=".txt,.md,.markdown,.pdf,.doc,.docx" />
-              <button class="primary-button" type="submit">Upload</button>
-            </form>
-
-            <div class="message" id="documentMessage" role="status"></div>
-            <ul class="document-list" id="documentList" aria-label="Uploaded documents"></ul>
+            <div class="sidebar-section conversations-section">
+              <div class="panel-header compact">
+                <h2>Conversations</h2>
+                <button class="icon-button" id="refreshConversations" type="button" title="Refresh conversations" aria-label="Refresh conversations">
+                  <span aria-hidden="true">↻</span>
+                </button>
+              </div>
+              <div class="message" id="conversationMessage" role="status"></div>
+              <ul class="conversation-list" id="conversationList" aria-label="Saved conversations"></ul>
+            </div>
           </aside>
 
           <section class="chat-panel" aria-label="Chat">

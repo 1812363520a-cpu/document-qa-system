@@ -12,6 +12,7 @@ def test_settings_load_local_defaults(monkeypatch):
     monkeypatch.delenv("CHUNK_SIZE", raising=False)
     monkeypatch.delenv("CHUNK_OVERLAP", raising=False)
     monkeypatch.delenv("RETRIEVAL_MIN_SCORE", raising=False)
+    monkeypatch.delenv("CONVERSATION_HISTORY_LIMIT", raising=False)
     monkeypatch.delenv("AI_PROVIDER", raising=False)
     monkeypatch.delenv("AI_REQUEST_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -41,6 +42,7 @@ def test_settings_load_local_defaults(monkeypatch):
     assert settings.chunk_size == 1000
     assert settings.chunk_overlap == 200
     assert settings.retrieval_min_score == 0.015
+    assert settings.conversation_history_limit == 20
     assert settings.ai_provider == "fake"
     assert settings.ai_request_timeout_seconds == 30.0
     assert settings.openai_api_key is None
@@ -69,6 +71,7 @@ def test_settings_load_environment_overrides(monkeypatch):
     monkeypatch.setenv("CHUNK_SIZE", "256")
     monkeypatch.setenv("CHUNK_OVERLAP", "32")
     monkeypatch.setenv("RETRIEVAL_MIN_SCORE", "0.25")
+    monkeypatch.setenv("CONVERSATION_HISTORY_LIMIT", "30")
     monkeypatch.setenv("AI_PROVIDER", "openai")
     monkeypatch.setenv("AI_REQUEST_TIMEOUT_SECONDS", "7.5")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
@@ -98,6 +101,7 @@ def test_settings_load_environment_overrides(monkeypatch):
     assert settings.chunk_size == 256
     assert settings.chunk_overlap == 32
     assert settings.retrieval_min_score == 0.25
+    assert settings.conversation_history_limit == 30
     assert settings.ai_provider == "openai"
     assert settings.ai_request_timeout_seconds == 7.5
     assert settings.openai_api_key == "test-key"

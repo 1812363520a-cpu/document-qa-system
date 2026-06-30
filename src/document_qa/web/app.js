@@ -5,10 +5,13 @@ const state = {
 const apiStatus = document.querySelector("#apiStatus");
 const documentList = document.querySelector("#documentList");
 const documentMessage = document.querySelector("#documentMessage");
+const conversationList = document.querySelector("#conversationList");
+const conversationMessage = document.querySelector("#conversationMessage");
 const uploadForm = document.querySelector("#uploadForm");
 const documentFile = document.querySelector("#documentFile");
 const fileLabel = document.querySelector("#fileLabel");
 const refreshDocuments = document.querySelector("#refreshDocuments");
+const refreshConversations = document.querySelector("#refreshConversations");
 const conversation = document.querySelector("#conversation");
 const chatForm = document.querySelector("#chatForm");
 const questionInput = document.querySelector("#questionInput");
@@ -65,6 +68,50 @@ async function loadDocuments() {
     setMessage(documentMessage, documents.length ? `${documents.length} document(s)` : "No documents");
   } catch (error) {
     setMessage(documentMessage, error.message, true);
+  }
+}
+
+async function loadConversations() {
+  try {
+    const conversations = await request("/api/conversations");
+    renderConversationList(conversations);
+    setMessage(conversationMessage, conversations.length ? `${conversations.length} conversation(s)` : "No conversations");
+  } catch (error) {
+    setMessage(conversationMessage, error.message, true);
+  }
+}
+
+function formatConversationDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function renderConversationList(conversations) {
+  conversationList.replaceChildren();
+  for (const item of conversations) {
+    const button = document.createElement("button");
+    button.className = "conversation-item";
+    button.type = "button";
+    button.classList.toggle("active", item.id === state.conversationId);
+    button.title = item.preview || item.id;
+
+    const title = document.createElement("div");
+    title.className = "conversation-title";
+    title.textContent = item.preview || "Untitled conversation";
+    const meta = document.createElement("div");
+    meta.className = "conversation-meta";
+    meta.textContent = `${item.message_count} message(s) · ${formatConversationDate(item.last_message_at)}`;
+    button.append(title, meta);
+    button.addEventListener("click", () => selectConversation(item.id));
+    conversationList.append(button);
   }
 }
 
@@ -293,6 +340,18 @@ async function loadConversation() {
   renderMessages(messages);
 }
 
+async function selectConversation(conversationId) {
+  state.conversationId = conversationId;
+  setMessage(chatMessage, "Loading conversation");
+  try {
+    await loadConversation();
+    await loadConversations();
+    setMessage(chatMessage, "Conversation loaded");
+  } catch (error) {
+    setMessage(chatMessage, error.message, true);
+  }
+}
+
 documentFile.addEventListener("change", () => {
   fileLabel.textContent = documentFile.files[0]?.name || "Choose file";
 });
@@ -343,6 +402,7 @@ chatForm.addEventListener("submit", async (event) => {
     state.conversationId = answer.conversation_id;
     pendingBubble.replaceWith(createMessageBubble("assistant", answer.answer));
     conversation.scrollTop = conversation.scrollHeight;
+    await loadConversations();
     setMessage(chatMessage, answer.insufficient_context ? "Insufficient context" : "Answered");
   } catch (error) {
     pendingBubble.remove();
@@ -354,14 +414,17 @@ chatForm.addEventListener("submit", async (event) => {
 });
 
 refreshDocuments.addEventListener("click", loadDocuments);
+refreshConversations.addEventListener("click", loadConversations);
 
 newConversation.addEventListener("click", () => {
   state.conversationId = null;
   renderMessages([]);
+  loadConversations();
   setChatLoading(false);
   setMessage(chatMessage, "New conversation");
 });
 
 checkApi();
 loadDocuments();
+loadConversations();
 renderMessages([]);

@@ -100,7 +100,8 @@ h2 {
 
 .documents-panel {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(180px, 0.75fr);
+  gap: 14px;
   padding: 16px;
   overflow: hidden;
 }
@@ -118,6 +119,26 @@ h2 {
   gap: 12px;
   min-height: 36px;
   margin-bottom: 14px;
+}
+
+.panel-header.compact {
+  margin-bottom: 8px;
+}
+
+.sidebar-section {
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.documents-section {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.conversations-section {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .upload-form {
@@ -248,7 +269,8 @@ input[type="file"] {
   color: var(--danger);
 }
 
-.document-list {
+.document-list,
+.conversation-list {
   display: grid;
   align-content: start;
   gap: 8px;
@@ -259,7 +281,8 @@ input[type="file"] {
   list-style: none;
 }
 
-.document-item {
+.document-item,
+.conversation-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -271,11 +294,25 @@ input[type="file"] {
   background: #fbfcfd;
 }
 
-.document-item > div {
+.conversation-item {
+  grid-template-columns: minmax(0, 1fr);
+  cursor: pointer;
+  text-align: left;
+}
+
+.conversation-item:hover,
+.conversation-item.active {
+  border-color: rgba(15, 118, 110, 0.4);
+  background: #eef8f6;
+}
+
+.document-item > div,
+.conversation-item > div {
   min-width: 0;
 }
 
-.document-name {
+.document-name,
+.conversation-title {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -284,10 +321,17 @@ input[type="file"] {
   font-weight: 700;
 }
 
-.document-meta {
+.document-meta,
+.conversation-meta {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.conversation-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversation {

@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import Protocol
 
-from document_qa.qa.models import ConversationMessage
+from document_qa.qa.models import ConversationMessage, ConversationSummary
 
 
 class ConversationRepository(Protocol):
@@ -18,6 +18,9 @@ class ConversationRepository(Protocol):
         ...
 
     def list_messages(self, conversation_id: str) -> list[ConversationMessage]:
+        ...
+
+    def list_conversations(self) -> list[ConversationSummary]:
         ...
 
     def next_sequence(self, conversation_id: str) -> int:
@@ -122,6 +125,43 @@ class SQLiteConversationRepository:
                 content=row["content"],
                 created_at=row["created_at"],
                 sequence=row["sequence"],
+            )
+            for row in rows
+        ]
+
+    def list_conversations(self) -> list[ConversationSummary]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    c.id,
+                    c.created_at,
+                    COALESCE(MAX(m.created_at), c.created_at) AS last_message_at,
+                    COUNT(m.id) AS message_count,
+                    COALESCE(
+                        (
+                            SELECT cm.content
+                            FROM conversation_messages cm
+                            WHERE cm.conversation_id = c.id
+                            ORDER BY cm.sequence ASC
+                            LIMIT 1
+                        ),
+                        ''
+                    ) AS preview
+                FROM conversations c
+                LEFT JOIN conversation_messages m ON m.conversation_id = c.id
+                GROUP BY c.id, c.created_at
+                ORDER BY last_message_at DESC
+                """
+            ).fetchall()
+
+        return [
+            ConversationSummary(
+                id=row["id"],
+                created_at=row["created_at"],
+                last_message_at=row["last_message_at"],
+                message_count=row["message_count"],
+                preview=row["preview"],
             )
             for row in rows
         ]

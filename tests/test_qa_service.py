@@ -1,5 +1,5 @@
 from document_qa.documents.models import DocumentChunk
-from document_qa.qa.models import ConversationMessage, QuestionAnswerLog
+from document_qa.qa.models import ConversationMessage, ConversationSummary, QuestionAnswerLog
 from document_qa.qa.provider import ProviderPrompt
 from document_qa.qa.service import INSUFFICIENT_CONTEXT_ANSWER, QAService
 from document_qa.retrieval.vector_store import SearchResult
@@ -55,6 +55,18 @@ class InMemoryConversationRepository:
             self.messages.get(conversation_id, []),
             key=lambda message: message.sequence,
         )
+
+    def list_conversations(self):
+        return [
+            ConversationSummary(
+                id=conversation_id,
+                created_at="",
+                last_message_at="",
+                message_count=len(messages),
+                preview=messages[0].content if messages else "",
+            )
+            for conversation_id, messages in self.messages.items()
+        ]
 
     def next_sequence(self, conversation_id: str) -> int:
         messages = self.messages.get(conversation_id, [])
@@ -256,3 +268,36 @@ def test_qa_service_reuses_conversation_and_includes_recent_history():
     assert "assistant: generated answer" in provider.prompts[1].context
     messages = conversation_repository.list_messages(first.conversation_id)
     assert [message.sequence for message in messages] == [0, 1, 2, 3]
+
+
+def test_qa_service_uses_configured_history_limit():
+    chunk = DocumentChunk(
+        id="doc-1:0",
+        document_id="doc-1",
+        chunk_index=0,
+        content="Uploads are handled by FastAPI.",
+        start_char=0,
+        end_char=31,
+    )
+    vector_store = RecordingVectorStore([SearchResult(chunk=chunk, score=0.8)])
+    provider = RecordingProvider()
+    repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
+    service = QAService(
+        vector_store=vector_store,
+        provider=provider,
+        repository=repository,
+        conversation_repository=conversation_repository,
+        history_limit=20,
+    )
+
+    first = service.answer_question("Question 1?")
+    for index in range(2, 9):
+        service.answer_question(f"Question {index}?", conversation_id=first.conversation_id)
+
+    service.answer_question("Final question?", conversation_id=first.conversation_id)
+
+    context = provider.prompts[-1].context
+    assert "user: Question 1?" in context
+    assert "assistant: generated answer" in context
+    assert "user: Question 8?" in context

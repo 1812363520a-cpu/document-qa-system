@@ -4,7 +4,12 @@ from uuid import uuid4
 
 from document_qa.persistence.conversations import ConversationRepository
 from document_qa.persistence.qa_logs import QARepository
-from document_qa.qa.models import ConversationMessage, QAResponse, QuestionAnswerLog
+from document_qa.qa.models import (
+    ConversationMessage,
+    ConversationSummary,
+    QAResponse,
+    QuestionAnswerLog,
+)
 from document_qa.qa.provider import AIProvider, ProviderPrompt
 from document_qa.retrieval.vector_store import SearchResult, VectorStore
 
@@ -24,7 +29,7 @@ class QAService:
         conversation_repository: ConversationRepository,
         retrieval_limit: int = 5,
         retrieval_min_score: float = 0.015,
-        history_limit: int = 6,
+        history_limit: int = 20,
     ) -> None:
         self.vector_store = vector_store
         self.provider = provider
@@ -133,6 +138,9 @@ class QAService:
 
     def list_messages(self, conversation_id: str) -> list[ConversationMessage]:
         return self.conversation_repository.list_messages(conversation_id)
+
+    def list_conversations(self) -> list[ConversationSummary]:
+        return self.conversation_repository.list_conversations()
 
     def _ensure_conversation(self, conversation_id: Optional[str]) -> str:
         active_conversation_id = conversation_id or str(uuid4())

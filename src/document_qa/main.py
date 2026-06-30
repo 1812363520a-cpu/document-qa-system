@@ -49,6 +49,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         repository=app.state.qa_repository,
         conversation_repository=app.state.conversation_repository,
         retrieval_min_score=app_settings.retrieval_min_score,
+        history_limit=app_settings.conversation_history_limit,
     )
     app.include_router(health_router, prefix=app_settings.api_prefix)
     app.include_router(documents_router, prefix=app_settings.api_prefix)
