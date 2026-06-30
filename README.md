@@ -2,7 +2,23 @@
 
 AI document question-answering system.
 
-## Development
+## What It Does
+
+This FastAPI backend uploads TXT and Markdown documents, stores source files and metadata, parses documents into chunks, indexes chunks for local retrieval, answers document-grounded questions, tracks conversation history, and supports configurable AI providers.
+
+## Quick Start With Docker
+
+```bash
+docker compose up --build
+```
+
+Check the API:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+## Local Development
 
 Create a virtual environment and install the project with development dependencies:
 
@@ -24,13 +40,20 @@ Start the API locally:
 uvicorn document_qa.main:app --reload
 ```
 
-The health check is available at:
+## Configuration
+
+Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, chunking, and provider settings.
+`AI_PROVIDER=fake` is the deterministic local default. Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to use the OpenAI provider.
+
+## Try The API
+
+Health check:
 
 ```text
 GET /api/health
 ```
 
-The first document endpoints are:
+Document and chat endpoints:
 
 ```text
 POST /api/documents/upload
@@ -40,9 +63,17 @@ POST /api/chat
 GET /api/conversations/{conversation_id}/messages
 ```
 
-Uploaded TXT and Markdown documents are parsed into plain text and split into persisted chunks during ingestion.
-Chunks are also indexed in the local SQLite-backed retrieval store for MVP search.
-The chat endpoint retrieves relevant chunks, includes recent conversation history, calls the configured provider, and logs each question and answer.
+Example:
 
-Configuration is loaded from environment variables. See `.env.example` for the current local defaults, including storage, database, and chunking settings.
-`AI_PROVIDER=fake` is the deterministic local default. Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to use the OpenAI provider.
+```bash
+curl -X POST http://localhost:8000/api/documents/upload -F "file=@README.md"
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is this project about?"}'
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [API Reference](docs/api.md)
+- [User Guide](docs/user-guide.md)

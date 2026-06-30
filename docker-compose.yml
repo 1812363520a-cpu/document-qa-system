@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: "Document Q&A System"
+      APP_ENV: "docker"
+      API_PREFIX: "/api"
+      LOG_LEVEL: "INFO"
+      STORAGE_DIR: "/app/.data/uploads"
+      DATABASE_PATH: "/app/.data/document_qa.sqlite3"
+      CHUNK_SIZE: "1000"
+      CHUNK_OVERLAP: "200"
+      AI_PROVIDER: "${AI_PROVIDER:-fake}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-4o-mini}"
+    volumes:
+      - ./.data:/app/.data
