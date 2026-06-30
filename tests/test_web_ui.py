@@ -36,9 +36,12 @@ def test_web_ui_static_assets_are_served(tmp_path):
 
     assert script_response.status_code == 200
     assert "loadDocuments" in script_response.text
+    assert "renderMarkdown" in script_response.text
+    assert "renderInlineMarkdown" in script_response.text
     assert "setChatLoading" in script_response.text
     assert "AI is thinking" in script_response.text
     assert style_response.status_code == 200
     assert ".layout-grid" in style_response.text
+    assert ".bubble-content strong" in style_response.text
     assert ".inline-spinner" in style_response.text
     assert "text-overflow: ellipsis" in style_response.text

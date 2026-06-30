@@ -113,6 +113,122 @@ function setChatLoading(isLoading) {
   label.textContent = isLoading ? "Sending" : "Send";
 }
 
+function renderMarkdown(markdown) {
+  const fragment = document.createDocumentFragment();
+  const lines = markdown.split(/\r?\n/);
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+
+    const orderedMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (orderedMatch) {
+      const list = document.createElement("ol");
+      while (index < lines.length) {
+        const match = lines[index].match(/^\s*\d+\.\s+(.*)$/);
+        if (!match) break;
+        const item = document.createElement("li");
+        item.append(renderInlineMarkdown(match[1]));
+        list.append(item);
+        index += 1;
+      }
+      fragment.append(list);
+      continue;
+    }
+
+    const unorderedMatch = line.match(/^\s*[-*]\s+(.*)$/);
+    if (unorderedMatch) {
+      const list = document.createElement("ul");
+      while (index < lines.length) {
+        const match = lines[index].match(/^\s*[-*]\s+(.*)$/);
+        if (!match) break;
+        const item = document.createElement("li");
+        item.append(renderInlineMarkdown(match[1]));
+        list.append(item);
+        index += 1;
+      }
+      fragment.append(list);
+      continue;
+    }
+
+    const headingMatch = line.match(/^\s{0,3}(#{1,3})\s+(.*)$/);
+    if (headingMatch) {
+      const heading = document.createElement(`h${headingMatch[1].length + 3}`);
+      heading.append(renderInlineMarkdown(headingMatch[2]));
+      fragment.append(heading);
+      index += 1;
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (index < lines.length && lines[index].trim()) {
+      if (
+        lines[index].match(/^\s*\d+\.\s+/) ||
+        lines[index].match(/^\s*[-*]\s+/) ||
+        lines[index].match(/^\s{0,3}#{1,3}\s+/)
+      ) {
+        break;
+      }
+      paragraphLines.push(lines[index]);
+      index += 1;
+    }
+    const paragraph = document.createElement("p");
+    paragraph.append(renderInlineMarkdown(paragraphLines.join("\n")));
+    fragment.append(paragraph);
+  }
+
+  if (!fragment.childNodes.length) {
+    fragment.append(document.createTextNode(markdown));
+  }
+  return fragment;
+}
+
+function renderInlineMarkdown(text) {
+  const fragment = document.createDocumentFragment();
+  const pattern = /(`([^`]+)`)|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)/g;
+  let cursor = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) {
+      appendTextWithLineBreaks(fragment, text.slice(cursor, match.index));
+    }
+    if (match[2]) {
+      const code = document.createElement("code");
+      code.textContent = match[2];
+      fragment.append(code);
+    } else if (match[4]) {
+      const strong = document.createElement("strong");
+      strong.textContent = match[4];
+      fragment.append(strong);
+    } else if (match[6]) {
+      const emphasis = document.createElement("em");
+      emphasis.textContent = match[6];
+      fragment.append(emphasis);
+    }
+    cursor = pattern.lastIndex;
+  }
+
+  if (cursor < text.length) {
+    appendTextWithLineBreaks(fragment, text.slice(cursor));
+  }
+  return fragment;
+}
+
+function appendTextWithLineBreaks(parent, text) {
+  const parts = text.split("\n");
+  for (const [index, part] of parts.entries()) {
+    if (index > 0) {
+      parent.append(document.createElement("br"));
+    }
+    parent.append(document.createTextNode(part));
+  }
+}
+
 function createMessageBubble(role, content, options = {}) {
   const bubble = document.createElement("article");
   bubble.className = `bubble ${role}`;
@@ -132,7 +248,11 @@ function createMessageBubble(role, content, options = {}) {
     thinking.textContent = content;
     body.append(spinner, thinking);
   } else {
-    body.textContent = content;
+    if (role === "assistant") {
+      body.append(renderMarkdown(content));
+    } else {
+      body.textContent = content;
+    }
   }
   bubble.append(meta, body);
   return bubble;
