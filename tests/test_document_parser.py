@@ -29,6 +29,28 @@ def install_fake_antiword(tmp_path, monkeypatch, output: str, exit_code: int = 0
     antiword.write_text(f"#!/bin/sh\nprintf '%s' '{output}'\nexit {exit_code}\n")
     antiword.chmod(0o755)
     monkeypatch.setenv("PATH", str(bin_dir))
+    return bin_dir
+
+
+def install_fake_libreoffice(bin_dir, output: str, exit_code: int = 0):
+    libreoffice = bin_dir / "libreoffice"
+    libreoffice.write_text(
+        "#!/bin/sh\n"
+        "outdir=''\n"
+        "input=''\n"
+        "while [ \"$#\" -gt 0 ]; do\n"
+        "  if [ \"$1\" = '--outdir' ]; then\n"
+        "    shift\n"
+        "    outdir=\"$1\"\n"
+        "  else\n"
+        "    input=\"$1\"\n"
+        "  fi\n"
+        "  shift\n"
+        "done\n"
+        f"printf '%s' '{output}' > \"$outdir/input.txt\"\n"
+        f"exit {exit_code}\n"
+    )
+    libreoffice.chmod(0o755)
 
 
 def test_txt_parser_preserves_plain_text_content():
@@ -115,6 +137,21 @@ def test_doc_parser_falls_back_to_gb18030_text(tmp_path, monkeypatch):
     text = parser.parse("doc", "中文 可检索 内容".encode("gb18030"))
 
     assert text == "中文 可检索 内容"
+
+
+def test_doc_parser_falls_back_to_libreoffice_conversion(tmp_path, monkeypatch):
+    bin_dir = install_fake_antiword(
+        tmp_path,
+        monkeypatch,
+        "not a word document",
+        exit_code=1,
+    )
+    install_fake_libreoffice(bin_dir, "LibreOffice converted searchable content")
+    parser = DocumentParser()
+
+    text = parser.parse("doc", b"\x00\x01\x02\x03")
+
+    assert text == "LibreOffice converted searchable content"
 
 
 def test_parser_rejects_unsupported_file_type():

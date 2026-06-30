@@ -1,4 +1,5 @@
 import re
+import shutil
 import subprocess
 import tempfile
 from html import unescape
@@ -88,10 +89,14 @@ class DocumentParser:
             fallback_text = self._doc_compatibility_text(content)
             if fallback_text:
                 return fallback_text
+            libreoffice_text = self._libreoffice_doc_to_plain_text(content)
+            if libreoffice_text:
+                return libreoffice_text
             message = (
                 "Word .doc content could not be parsed. Make sure the file is a "
                 "legacy Word 97-2003 .doc file, a readable RTF/HTML/text document, "
-                "or a renamed .docx file, and is not encrypted or corrupted."
+                "a renamed .docx file, or a file LibreOffice can open, and is not "
+                "encrypted or corrupted."
             )
             if antiword_detail:
                 message = f"{message} Parser detail: {antiword_detail}"
@@ -99,8 +104,45 @@ class DocumentParser:
 
         text = result.stdout.strip()
         if not text:
+            libreoffice_text = self._libreoffice_doc_to_plain_text(content)
+            if libreoffice_text:
+                return libreoffice_text
             raise DocumentParseError("Word .doc document did not contain extractable text")
         return text
+
+    def _libreoffice_doc_to_plain_text(self, content: bytes) -> str:
+        command = shutil.which("libreoffice") or shutil.which("soffice")
+        if not command:
+            return ""
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            input_path = temporary_path / "input.doc"
+            input_path.write_bytes(content)
+
+            result = subprocess.run(
+                [
+                    command,
+                    "--headless",
+                    "--convert-to",
+                    "txt:Text",
+                    "--outdir",
+                    str(temporary_path),
+                    str(input_path),
+                ],
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=60,
+            )
+            if result.returncode != 0:
+                return ""
+
+            output_path = temporary_path / "input.txt"
+            if not output_path.exists():
+                return ""
+
+            return self._decode_document_text(output_path.read_bytes()).strip()
 
     def _doc_compatibility_text(self, content: bytes) -> str:
         try:
