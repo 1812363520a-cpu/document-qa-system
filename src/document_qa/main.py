@@ -48,6 +48,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         provider=build_ai_provider(app_settings),
         repository=app.state.qa_repository,
         conversation_repository=app.state.conversation_repository,
+        retrieval_min_score=app_settings.retrieval_min_score,
     )
     app.include_router(health_router, prefix=app_settings.api_prefix)
     app.include_router(documents_router, prefix=app_settings.api_prefix)

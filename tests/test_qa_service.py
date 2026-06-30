@@ -128,6 +128,78 @@ def test_qa_service_returns_insufficient_context_without_provider_call():
     assert repository.logs[0].insufficient_context is True
 
 
+def test_qa_service_returns_insufficient_context_for_low_score_results():
+    chunk = DocumentChunk(
+        id="doc-1:0",
+        document_id="doc-1",
+        chunk_index=0,
+        content="A barely related document chunk.",
+        start_char=0,
+        end_char=32,
+    )
+    vector_store = RecordingVectorStore([SearchResult(chunk=chunk, score=0.03)])
+    provider = RecordingProvider()
+    repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
+    service = QAService(
+        vector_store=vector_store,
+        provider=provider,
+        repository=repository,
+        conversation_repository=conversation_repository,
+        retrieval_min_score=0.1,
+    )
+
+    response = service.answer_question("Unrelated question?")
+
+    assert provider.prompts == []
+    assert response.answer == INSUFFICIENT_CONTEXT_ANSWER
+    assert response.insufficient_context is True
+    assert response.retrieved_chunk_ids == []
+    assert repository.logs[0].retrieved_chunk_ids == []
+
+
+def test_qa_service_filters_low_score_results_from_prompt():
+    low_score_chunk = DocumentChunk(
+        id="doc-1:0",
+        document_id="doc-1",
+        chunk_index=0,
+        content="Low confidence context.",
+        start_char=0,
+        end_char=23,
+    )
+    high_score_chunk = DocumentChunk(
+        id="doc-2:0",
+        document_id="doc-2",
+        chunk_index=0,
+        content="High confidence context.",
+        start_char=0,
+        end_char=24,
+    )
+    vector_store = RecordingVectorStore(
+        [
+            SearchResult(chunk=low_score_chunk, score=0.04),
+            SearchResult(chunk=high_score_chunk, score=0.6),
+        ]
+    )
+    provider = RecordingProvider()
+    repository = InMemoryQARepository()
+    conversation_repository = InMemoryConversationRepository()
+    service = QAService(
+        vector_store=vector_store,
+        provider=provider,
+        repository=repository,
+        conversation_repository=conversation_repository,
+        retrieval_min_score=0.1,
+    )
+
+    response = service.answer_question("Relevant question?")
+
+    assert response.insufficient_context is False
+    assert response.retrieved_chunk_ids == ["doc-2:0"]
+    assert "High confidence context." in provider.prompts[0].context
+    assert "Low confidence context." not in provider.prompts[0].context
+
+
 def test_qa_service_reuses_conversation_and_includes_recent_history():
     chunk = DocumentChunk(
         id="doc-1:0",

@@ -15,6 +15,7 @@ class Settings:
     max_upload_bytes: int = 20 * 1024 * 1024
     chunk_size: int = 1000
     chunk_overlap: int = 200
+    retrieval_min_score: float = 0.1
     ai_provider: str = "fake"
     ai_request_timeout_seconds: float = 30.0
     openai_api_key: Optional[str] = None
@@ -43,6 +44,9 @@ def get_settings() -> Settings:
         max_upload_bytes=int(os.getenv("MAX_UPLOAD_BYTES", Settings.max_upload_bytes)),
         chunk_size=int(os.getenv("CHUNK_SIZE", Settings.chunk_size)),
         chunk_overlap=int(os.getenv("CHUNK_OVERLAP", Settings.chunk_overlap)),
+        retrieval_min_score=float(
+            os.getenv("RETRIEVAL_MIN_SCORE", Settings.retrieval_min_score)
+        ),
         ai_provider=os.getenv("AI_PROVIDER", Settings.ai_provider),
         ai_request_timeout_seconds=float(
             os.getenv(

@@ -23,6 +23,7 @@ class QAService:
         repository: QARepository,
         conversation_repository: ConversationRepository,
         retrieval_limit: int = 5,
+        retrieval_min_score: float = 0.1,
         history_limit: int = 6,
     ) -> None:
         self.vector_store = vector_store
@@ -30,6 +31,7 @@ class QAService:
         self.repository = repository
         self.conversation_repository = conversation_repository
         self.retrieval_limit = retrieval_limit
+        self.retrieval_min_score = retrieval_min_score
         self.history_limit = history_limit
 
     def answer_question(
@@ -40,7 +42,9 @@ class QAService:
         normalized_question = question.strip()
         active_conversation_id = self._ensure_conversation(conversation_id)
         history = self._recent_history(active_conversation_id)
-        retrieved = self.vector_store.search(normalized_question, limit=self.retrieval_limit)
+        retrieved = self._filter_relevant_results(
+            self.vector_store.search(normalized_question, limit=self.retrieval_limit)
+        )
 
         if not normalized_question or not retrieved:
             return self._persist_response(
@@ -63,6 +67,13 @@ class QAService:
             retrieved=retrieved,
             insufficient_context=False,
         )
+
+    def _filter_relevant_results(self, results: list[SearchResult]) -> list[SearchResult]:
+        return [
+            result
+            for result in results
+            if result.score >= self.retrieval_min_score
+        ]
 
     def _build_context(
         self,

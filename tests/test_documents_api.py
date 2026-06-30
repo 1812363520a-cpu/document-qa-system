@@ -457,6 +457,29 @@ def test_chat_returns_insufficient_context_when_no_chunks_match(tmp_path):
     assert logs[0].insufficient_context is True
 
 
+def test_chat_returns_insufficient_context_when_matches_are_below_threshold(tmp_path):
+    client, app = make_client(tmp_path, retrieval_min_score=0.95)
+    upload_response = client.post(
+        "/api/documents/upload",
+        files={"file": ("notes.txt", b"FastAPI handles document uploads", "text/plain")},
+    )
+    assert upload_response.status_code == 201
+
+    response = client.post(
+        "/api/chat",
+        json={"question": "How does FastAPI handle uploads?"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["insufficient_context"] is True
+    assert body["retrieved_chunk_ids"] == []
+    logs = app.state.qa_repository.list()
+    assert len(logs) == 1
+    assert logs[0].insufficient_context is True
+    assert logs[0].retrieved_chunk_ids == []
+
+
 def test_chat_reuses_conversation_for_follow_up_questions(tmp_path):
     client, _ = make_client(tmp_path)
     upload_response = client.post(
